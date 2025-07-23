@@ -16,27 +16,58 @@ Directory: /
 """
 
 import time
+import sys
+import threading
 
 from utils.logging_config import setup_logging
-from utils.connection import Client, Server
+from utils.connection import Client, Server, Message
 
+from utils.ClientWindow_v2 import *
 
 if __name__ == '__main__':
 
-    setup_logging()
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
 
-    if input("server: [y/n]") == 'y':
-        print("server")
 
-        serv = Server()
-        serv.start()
-    else:
-        print("client")
+    """style = sys.argv[1]
 
-        client = Client()
+    if style == 'server':
 
         while True:
-            client.send_str(input('>'))
-            # client.send_str('cauky')
-            # time.sleep(1)
+            print("server starting")
 
+            serv = Server()
+            thread = threading.Thread(target=serv.start)
+            thread.start()
+            while True:
+                data = input("")
+                if data == 'restart':
+                    thread.join()
+                    break
+
+
+    elif style == 'client':
+        print("client")
+
+        client = Client(username=sys.argv[2])
+
+        receiver = None
+        while True:
+
+            new_string = input('>')
+
+            if new_string.startswith('send to '):
+                receiver = new_string.split('send to ')[-1]
+                new_string = ''
+            else:
+                new_msg = Message()
+                new_msg.set_from_str(new_string)
+                new_msg.receiver = receiver
+                client.send_message(new_msg)
+                new_string = ''
+    """
