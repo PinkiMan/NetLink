@@ -17,51 +17,33 @@ Directory: utils/
 
 import socket
 import threading
-import time
-import logging
-import sys
 
-from utils.classes import Address, Message, Colors
-from utils.config import MAX_RETRIES, HEADER_SIZE, ENCODING
+from classes import Address, Message, Colors
+from config import MAX_RETRIES, USERS_SPLITTER
+from networking import BaseConnection
 
-class Client:
-    def __init__(self, existing_socket=None, existing_address=None, messages:list=None, users=None, username=None):
-        self.server_address = Address('127.0.0.1', 5001)
+class Client(BaseConnection):
+    def __init__(self, username, server_address):
+        self.username = username
+        self.server_address = server_address
         self.server_side = False
 
-        if username is not None:
-            self.username = username
-        else:
-            self.username = 'NONE'
+        self.pause = False
 
-        if existing_socket is not None:
-            self.socket = existing_socket
-            self.server_side = True
-        else:
-            self.__connect_to_server()
+        self.__connect_to_server()
 
-        self.connected = None
-
-        self.existing_address = existing_address
-
-        if messages is None:
-            self.messages : list = []
-        else:
-            self.messages : list = messages
-
-        if users is None:
-            self.users = []
-        else:
-            self.users = users
-
+        super().__init__(self.socket, self.server_side)
 
     def __async_receive(self):
         while True:
-            message = self.receive_message()
-            print(f"{message}")
+            if not self.pause:
+                message = self.receive_message()
+                print(f"{message}")
 
     def __connect_to_server(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.socket.settimeout(1.0)
 
         for index in range(MAX_RETRIES):    # TODO: Rework retry connect
             try:
@@ -79,108 +61,45 @@ class Client:
 
         init_message = Message()
         init_message.set_from_str(self.username)
+        init_message.receiver = 'SERVER'
         self.send_message(init_message)
 
         print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} __connect_to_server: Connected to server")
 
-        thread = threading.Thread(target=self.__async_receive)
-        thread.start()
+        self.thread = threading.Thread(target=self.__async_receive)
+        self.thread.start()
 
-    def __receive_bytes(self, size: int = None) -> bytes:
-        """ receives bytes from other side """
-        if size is None:
-            size = HEADER_SIZE
-        elif type(size) is not int:
-            raise TypeError(f"size should be: int not {type(size)}")
+    def get_users(self):
+        self.pause = True
 
-        message_bytes = self.socket.recv(size)
+        message = Message()
+        message.message_str = "CLIENTS"
+        message.receiver = 'SERVER'
+        self.send_message(message)
 
-        if message_bytes is None:
-            self.connected = False
-            self.close()
+        message = self.receive_message()
+        for client_username in message.message_str.split(USERS_SPLITTER):
+            print(client_username)
 
-        return message_bytes
-
-    def __send_bytes(self, message: bytes):
-        pass
-
-    def receive_message(self) -> Message | None:
-        """ receives Message object from other side """
-        size_bytes = self.__receive_bytes()
-
-        if size_bytes == None:
-            return None
-            #raise ValueError(f"message is None, length should be number")
-        size_str = size_bytes.decode(ENCODING)
-
-        if size_str == '':
-            return None
-            #raise ValueError(f"message is '', length should be number")
-
-        size_int = int(size_str)
-        print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} Size received: {str(size_int)}")
-
-        message_bytes = self.__receive_bytes(size_int)
-
-        new_msg = Message()
-        new_msg.from_bytes(message_bytes)
-
-        print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} Bytes received: {new_msg.sender}->{new_msg.receiver}:{new_msg.message_str}")
-
-        return new_msg
-
-    def send_message(self, message: Message) -> None:
-        if message.sender is not None and self.server_side is False:
-            raise AttributeError(f"Sender is already set ({message.sender})")
-
-        if not self.server_side:
-            message.sender = self.username
-
-        bytes_message = message.to_bytes()
-        msg_length = len(bytes_message)
-        send_length = str(msg_length).encode(ENCODING)
-        send_length += b' ' * (HEADER_SIZE - len(send_length))
-
-        print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} send_message(): {msg_length}")
-
-        self.socket.send(send_length)
-        self.socket.send(bytes_message)
-
-        print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} send_message(): {message}")
-
-    def __send_forward(self):
-        while True:
-            for message in self.messages:
-                if message.receiver == self.username:
-                    self.send_message(message)
-                    print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} Sending to user {message}")
-                    self.messages.remove(message)
-
-    def server_main(self):
-        # TODO: receive username
-        thread = threading.Thread(target=self.__send_forward)
-        thread.start()
-
-        while True:
-            message = self.receive_message()
-            if message is not None:
-                print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} server_main: {message}")
-                #self.messages.append(())
-
-                self.messages.append(message)
-            else:
-                self.close()
-
-            """for it in self.messages:
-                if it[0] == self.existing_address:
-                    self.send_str(it[1])"""
-
-    def close(self):
-        self.socket.close()
-
-        print(f"Client disconnected:{self.server_address.port}")
-
-        exit()
+        self.pause = False
 
 if __name__ == '__main__':
-    pass
+    username = input("Username: ")
+    server_address = Address('127.0.0.1', 5001)
+    client = Client(username, server_address)
+
+    while True:
+        client.get_users()
+        end_user = input("End user: ")
+
+        if end_user == "exit":
+            break
+        else:
+            while True:
+                message = input("zadej zprávu: ")
+                if message == 'close':
+                    break
+                else:
+                    mess = Message()
+                    mess.message_str = message
+                    client.send_message(mess)

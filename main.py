@@ -15,14 +15,7 @@ Filename: main.py
 Directory: /
 """
 
-import time
-import sys
-import threading
-
-from utils.logging_config import setup_logging
-from utils.connection import Client, Server, Message
-
-from utils.ClientWindow_v2 import *
+from GUI.window.ClientWindow_v2 import *
 
 if __name__ == '__main__':
 

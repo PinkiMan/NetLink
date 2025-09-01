@@ -9,6 +9,8 @@ __version__ = "0.1.0"
 __copyright__ = ""
 __license__ = ""
 
+import asyncio
+
 """
 Project: NetLink
 Filename: server.py
@@ -17,12 +19,9 @@ Directory: utils/
 
 import socket
 import threading
-import time
-import logging
-import sys
 
-from classes import Address, Colors
-from client import Client
+from classes import Address, Colors, Message
+from networking import ClientHandler
 
 class Server:
     def __init__(self):
@@ -60,8 +59,14 @@ class Server:
             #time.sleep(1)
 
 
-    def start(self):
-        self.socket.listen(self.connections_limit)
+    async def start(self):
+        server = await asyncio.start_server(
+            self.handle_client,
+            self.address.ip,
+            self.address.port,
+            limit=self.connections_limit
+        )
+
         print(f"{Colors.Fg.green}[INFO]{Colors.reset} Server is listening on", self.address)
         while True:
             self.__accept_client()
@@ -70,15 +75,15 @@ class Server:
         client_socket, client_address = self.socket.accept()
         print(f"{Colors.Fg.green}[INFO]{Colors.reset} Client connected: {client_address}")
 
-        new_client = Client(client_socket, client_address, self.messages)
+        new_client = ClientHandler(client_socket, client_address, self.messages, self.clients)
         self.clients.append(new_client)
 
         init_message = new_client.receive_message()
         new_client.username = init_message.message_str
 
-        print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} Client connected has username: {new_client.username}")
+        print(f"{Colors.Fg.green}[INFO]{Colors.reset} Client connected has username: {new_client.username}")
 
-        thread = threading.Thread(target=new_client.server_main)
+        thread = threading.Thread(target=new_client.main)
         thread.start()
 
     def __str__(self):
@@ -89,6 +94,30 @@ class Server:
             string_data += f"{client.username}"
 
         return string_data
+
+    async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        new_client = BaseConnection(reader, writer, server_side=True)
+        self.clients.append(new_client)
+
+        # přijmeme úvodní zprávu s uživatelským jménem
+        init_message = await new_client.receive_message()
+        if init_message:
+            new_client.username = init_message.message_str
+            print(f"[INFO] Client connected with username: {new_client.username}")
+
+        try:
+            while new_client.connected:
+                message = await new_client.receive_message()
+                if message is None:
+                    break
+                print(f"[INFO] Message received from {new_client.username}: {message.message_str}")
+                self.messages.append(message)
+                await self.broadcast(message, sender=new_client)
+        finally:
+            await new_client.close()
+            self.clients.remove(new_client)
+            print(f"[INFO] Client {new_client.username} disconnected")
+
 
 if __name__ == '__main__':
     serv = Server()

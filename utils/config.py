@@ -19,6 +19,8 @@ ENCODING = 'utf-8'
 HEADER_SIZE = 1024
 DISCONNECT = '!DISCONNECT!'
 MAX_RETRIES = 5
+MESSAGE_PART_SPLITTER = '|||'
+USERS_SPLITTER = '!!!'
 
 if __name__ == '__main__':
     pass

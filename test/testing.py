@@ -1,6 +1,4 @@
-import socket
 import unittest
-import threading
 from utils.connection import Client, Server, Message
 
 

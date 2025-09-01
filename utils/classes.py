@@ -15,7 +15,7 @@ Filename: classes.py
 Directory: utils/
 """
 
-from utils.config import ENCODING
+from config import ENCODING, MESSAGE_PART_SPLITTER
 
 class Address:
     def __init__(self, ip, port):
@@ -72,11 +72,11 @@ class Message:
         return int(self.message_str)
 
     def to_bytes(self):
-        return f"{self.message_str}|||{self.sender}|||{self.receiver}".encode(ENCODING)
+        return f"{self.sender}{MESSAGE_PART_SPLITTER}{self.receiver}{MESSAGE_PART_SPLITTER}{self.message_str}".encode(ENCODING)
 
     def from_bytes(self, bytes_data):
         sting_data = bytes_data.decode(ENCODING)
-        self.message_str, self.sender, self.receiver = sting_data.split('|||')
+        self.sender, self.receiver, self.message_str = sting_data.split(MESSAGE_PART_SPLITTER)
 
 
 class Colors:
