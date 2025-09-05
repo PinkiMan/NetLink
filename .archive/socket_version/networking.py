@@ -21,34 +21,36 @@ from classes import Colors, Message
 from config import HEADER_SIZE, ENCODING, USERS_SPLITTER
 
 class BaseConnection:
-    def __init__(self, socket_connection, server_side):
-        self.socket = socket_connection
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, server_side: bool):
+        self.reader = reader
+        self.writer = writer
         self.server_side = server_side
+        self.connected = True
 
-    async def __receive_bytes(self, size: int = None) -> bytes:
+    async def __receive_bytes(self, size: int = None) -> bytes | None:
         """ receives bytes from other side """
         if size is None:
             size = HEADER_SIZE
         elif type(size) is not int:
             raise TypeError(f"size should be: int not {type(size)}")
 
-        message_bytes = self.socket.recv(size)
-
-        if message_bytes is None:
+        try:
+            message_bytes = await self.reader.readexactly(size)
+            return message_bytes
+        except asyncio.IncompleteReadError:
             self.connected = False
-            self.close()
+            await self.close()
+            return None
 
-        return message_bytes
-
-    def receive_message(self) -> Message | None:
+    async def receive_message(self) -> Message | None:
         """ receives Message object from other side """
-        size_bytes = self.__receive_bytes()
+        size_bytes = await self.__receive_bytes()
 
-        if size_bytes == None:
+        if not size_bytes:
             return None
             #raise ValueError(f"message is None, length should be number")
-        size_str = size_bytes.decode(ENCODING)
 
+        size_str = size_bytes.decode(ENCODING).strip()
         if size_str == '':
             return None
             #raise ValueError(f"message is '', length should be number")
@@ -56,7 +58,9 @@ class BaseConnection:
         size_int = int(size_str)
         print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} Size received: {str(size_int)}")
 
-        message_bytes = self.__receive_bytes(size_int)
+        message_bytes = await self.__receive_bytes(size_int)
+        if message_bytes is None:
+            return None
 
         new_msg = Message()
         new_msg.from_bytes(message_bytes)
@@ -65,8 +69,8 @@ class BaseConnection:
 
         return new_msg
 
-    def send_message(self, message: Message) -> None:
-        if message.sender is not None and self.server_side is False:
+    async def send_message(self, message: Message) -> None:
+        if message.sender is not None and not self.server_side:
             raise AttributeError(f"Sender is already set ({message.sender})")
 
         if not self.server_side:
@@ -79,50 +83,55 @@ class BaseConnection:
 
         print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} send_message(): {msg_length}")
 
-        self.socket.send(send_length)
-        self.socket.send(bytes_message)
+        self.writer.write(send_length)
+        await self.writer.drain()
+        self.writer.write(bytes_message)
+        await self.writer.drain()
 
         print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} send_message(): {message}")
 
-    def close(self):
-        self.socket.close()
+    async def close(self):
+        self.connected = False
+        self.writer.close()
+        await self.writer.wait_closed()
 
-        print(f"Client disconnected:{self.server_address.port}")
+        print(f"Client disconnected")
 
 class ClientHandler(BaseConnection):
-    def __init__(self, client_socket, client_address, pending_messages, clients):
-        super().__init__(client_socket, True)
-        self.client_socket = client_socket
-        self.client_address = client_address
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, pending_messages: list, clients: list):
+        super().__init__(reader, writer, server_side=True)
         self.pending_messages = pending_messages
         self.clients = clients
 
-    async def __send_forward(self):
-        while True:
+    async def send_forward(self):
+        while self.connected:
             for message in self.pending_messages:
                 if message.receiver == self.username:
-                    self.send_message(message)
+                    await self.send_message(message)
                     print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} Sending to user {message}")
                     self.pending_messages.remove(message)
 
-    def main(self):
+            await asyncio.sleep(0.1)
+
+    async def main(self):
         # TODO: receive username
 
-        thread = threading.Thread(target=self.__send_forward)
-        thread.start()
+        asyncio.create_task(self.send_forward())
 
         while True:
-            message = self.receive_message()
-            if message is not None:
-                print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} server_main: {message}")
-                # self.messages.append(())
+            message = await self.receive_message()
 
-                if message.message_str == 'CLIENTS':
-                    self.send_message(self.get_online_clients())
-                else:
-                    self.pending_messages.append(message)
+            if message is None:
+                await self.close()
+                break
+
+            print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} server_main: {message}")
+
+            if message.message_str == 'CLIENTS':
+                await self.send_message(self.get_online_clients())
             else:
-                self.close()
+                self.pending_messages.append(message)
+
             """for it in self.messages:
                 if it[0] == self.existing_address:
                     self.send_str(it[1])"""

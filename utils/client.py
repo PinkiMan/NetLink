@@ -2,8 +2,8 @@ __author__ = "Pinkas Matěj - pinka"
 __maintainer__ = "Pinkas Matěj - pinka"
 __email__ = "pinkas.matej@gmail.com"
 __credits__ = []
-__created__ = "20/07/2025"
-__date__ = "20/07/2025"
+__created__ = "02/09/2025"
+__date__ = "02/09/2025"
 __status__ = "Prototype"
 __version__ = "0.1.0"
 __copyright__ = ""
@@ -15,91 +15,60 @@ Filename: client.py
 Directory: utils/
 """
 
-import socket
-import threading
+import asyncio
+import sys
+from classes import Address
 
-from classes import Address, Message, Colors
-from config import MAX_RETRIES, USERS_SPLITTER
-from networking import BaseConnection
-
-class Client(BaseConnection):
-    def __init__(self, username, server_address):
-        self.username = username
+class Client:
+    def __init__(self, server_address:Address, ):
         self.server_address = server_address
-        self.server_side = False
+        self.reader = None
+        self.writer = None
 
-        self.pause = False
+    async def connect(self):
+        """Připojí klienta k serveru."""
+        self.reader, self.writer = await asyncio.open_connection(self.server_address.ip, self.server_address.port)
+        print(f"Connected to {self.server_address.ip}:{self.server_address.port}", file=sys.stderr)
 
-        self.__connect_to_server()
-
-        super().__init__(self.socket, self.server_side)
-
-    def __async_receive(self):
+    async def listen(self):
+        """Čte zprávy ze serveru a posílá je na stdout."""
         while True:
-            if not self.pause:
-                message = self.receive_message()
-                print(f"{message}")
-
-    def __connect_to_server(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        self.socket.settimeout(1.0)
-
-        for index in range(MAX_RETRIES):    # TODO: Rework retry connect
-            try:
-                self.socket.connect((self.server_address.ip, self.server_address.port))
+            data = await self.reader.readline()
+            if not data:
+                print("Server closed connection", file=sys.stderr)
                 break
-            except Exception as error:
-                print(f"ERROR: {error}")
-                if error is not ConnectionRefusedError:
-                    print(error)
-                elif error is ConnectionRefusedError and index+1 == MAX_RETRIES:
-                    raise ConnectionRefusedError(f"ERROR: '{error}'")
+            sys.stdout.write(data.decode())
+            sys.stdout.flush()
 
+    async def send(self):
+        """Čte zprávy ze stdin a posílá je na server."""
+        loop = asyncio.get_running_loop()
+        while True:
+            msg = await loop.run_in_executor(None, sys.stdin.readline)
+            if not msg:
+                break
+            self.writer.write(msg.encode())
+            await self.writer.drain()
 
-        self.connected = True
+    async def run(self):
+        """Spustí klienta: poslouchání + posílání."""
+        await self.connect()
+        listen_task = asyncio.create_task(self.listen())
+        send_task = asyncio.create_task(self.send())
 
-        init_message = Message()
-        init_message.set_from_str(self.username)
-        init_message.receiver = 'SERVER'
-        self.send_message(init_message)
+        done, pending = await asyncio.wait(
+            [listen_task, send_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
 
-        print(f"{Colors.Fg.yellow}[DEBUG]{Colors.reset} __connect_to_server: Connected to server")
+        for task in pending:
+            task.cancel()
 
-        self.thread = threading.Thread(target=self.__async_receive)
-        self.thread.start()
+        self.writer.close()
+        await self.writer.wait_closed()
 
-    def get_users(self):
-        self.pause = True
-
-        message = Message()
-        message.message_str = "CLIENTS"
-        message.receiver = 'SERVER'
-        self.send_message(message)
-
-        message = self.receive_message()
-        for client_username in message.message_str.split(USERS_SPLITTER):
-            print(client_username)
-
-        self.pause = False
 
 if __name__ == '__main__':
-    username = input("Username: ")
-    server_address = Address('127.0.0.1', 5001)
-    client = Client(username, server_address)
-
-    while True:
-        client.get_users()
-        end_user = input("End user: ")
-
-        if end_user == "exit":
-            break
-        else:
-            while True:
-                message = input("zadej zprávu: ")
-                if message == 'close':
-                    break
-                else:
-                    mess = Message()
-                    mess.message_str = message
-                    client.send_message(mess)
+    server_address = Address("127.0.0.1", 8888)
+    client = Client(server_address, )
+    asyncio.run(client.run())

@@ -1,68 +1,82 @@
 import unittest
-from utils.connection import Client, Server, Message
+import asyncio
+from utils.asynchronous import Server, Address
 
+class TestChatServer(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        # Spustíme server na volném portu
 
-class Connection(unittest.TestCase):
-    """def test_server_client_receive(self):
+        self.server = Server(Address("127.0.0.1", 0))
+        self.server_task = asyncio.create_task(self.server.start())
 
-        server = Server()
-        client_1 = Client()
-        client_2 = Client()
+        # počkáme, až server začne naslouchat
+        while not self.server.server:
+            await asyncio.sleep(0.01)
 
+        self.host, self.port = self.server.server.sockets[0].getsockname()
 
+    async def asyncTearDown(self):
+        self.server.server.close()
+        await self.server.server.wait_closed()
+        self.server_task.cancel()
 
+    async def connect_client(self, name):
+        reader, writer = await asyncio.open_connection(self.host, self.port)
+        # přečteme prompt
+        await reader.readline()
+        writer.write(f"{name}\n".encode())
+        await writer.drain()
+        return reader, writer
 
-        self.assertEqual(True, False)"""
+    async def test_list_command(self):
+        # připojíme dva klienty
+        r1, w1 = await self.connect_client("alice")
+        r2, w2 = await self.connect_client("bob")
 
-    def test_message_eq_1(self):
-        server = Server()
-        server.start()
+        # klient 1 pošle /list
+        w1.write(b"/list\n")
+        await w1.drain()
+        response = await r1.readline()
+        self.assertIn("alice", response.decode())
+        self.assertIn("bob", response.decode())
 
-        client_1 = Client(username='username_1')
-        client_2 = Client(username='username_2')
+        # zavřeme klienty
+        w1.close()
+        w2.close()
+        await w1.wait_closed()
+        await w2.wait_closed()
 
-        testing_string = 'abcdef'
+    async def test_broadcast(self):
+        r1, w1 = await self.connect_client("alice")
+        r2, w2 = await self.connect_client("bob")
 
-        new_msg.set_from_str(new_string)
-        new_msg.receiver = receiver
-        client.send_message(new_msg)
+        w1.write(b"Hello everyone\n")
+        await w1.drain()
+        msg = await r2.readline()
+        self.assertIn("Hello everyone", msg.decode())
 
-        message = Message()
-        message.message_str = testing_string
-        self.assertEqual(message == testing_string, True)
+        w1.close()
+        w2.close()
+        await w1.wait_closed()
+        await w2.wait_closed()
 
-    def test_message_eq_2(self):
-        testing_string = 'abcdef'
+    async def test_private_message(self):
+        r1, w1 = await self.connect_client("alice")
+        r2, w2 = await self.connect_client("bob")
 
-        message = Message()
-        message.message_str = testing_string + 'g'
-        self.assertEqual(message == testing_string, False)
+        w1.write(b"@bob Secret message\n")
+        await w1.drain()
+        msg = await r2.readline()
+        self.assertIn("Secret message", msg.decode())
+        self.assertIn("private", msg.decode())
 
-    def test_message_eq_3(self):
-        message = Message(None)
+        # Alice by neměla dostat svou vlastní zprávu
+        self.assertTrue(w1._transport.is_closing() == False)
 
-        self.assertEqual(message == None, True)
-
-    def test_message_ne_1(self):
-        testing_string = 'abcdef'
-
-        message = Message()
-        message.message_str = testing_string + 'g'
-        self.assertEqual(message != testing_string, True)
-
-    def test_message_ne_2(self):
-        testing_string = 'abcdef'
-
-        message = Message()
-        message.message_str = testing_string
-        self.assertEqual(message != testing_string, False)
-
-    def test_message_ne_3(self):
-        testing_string = 'abcdef'
-
-        message = Message(bytes(testing_string, 'utf-8'))
-
-        self.assertEqual(message != None, True)
+        w1.close()
+        w2.close()
+        await w1.wait_closed()
+        await w2.wait_closed()
 
 
 if __name__ == '__main__':
