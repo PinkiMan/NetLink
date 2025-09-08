@@ -17,23 +17,20 @@ Directory: utils/
 
 import asyncio
 import sys
+import hashlib
 
-from classes import Address
+from classes import Address, Message
+
 
 class Server:
     def __init__(self, server_address: Address):
         self.server_address = server_address
-        self.clients = {}
+        self.clients = {}  # name -> {"reader": reader, "writer": writer}
+        self.pending_files = {}  # filename -> {"target": target_name, "data": bytes}
+        self.offline_messages = {}  # target_name -> [Message]
 
     async def handle_client(self, reader, writer):
-        addr = writer.get_extra_info("peername")
-        print(f"New client from {addr}")
-
-        # první zpráva od klienta = jméno
-        writer.write(b"Enter your name:\n")
-        await writer.drain()
         name = (await reader.readline()).decode().strip()
-
         if not name or name in self.clients:
             writer.write(b"Invalid or duplicate name. Connection closed.\n")
             await writer.drain()
@@ -41,73 +38,91 @@ class Server:
             await writer.wait_closed()
             return
 
-        self.clients[name] = writer
-        print(f"Client registered: {name}")
+        self.clients[name] = {"reader": reader, "writer": writer}
+        await self.broadcast(Message(type_="broadcast", text=f"*** {name} has joined the chat ***", sender="Server"), exclude=name)
 
-        # oznámíme ostatním, že se připojil
-        await self.broadcast(f"*** {name} has joined the chat ***", exclude=writer)
+        # doručení offline zpráv
+        if name in self.offline_messages:
+            for msg in self.offline_messages[name]:
+                writer.write(msg.serialize())
+                await writer.drain()
+            del self.offline_messages[name]
 
         try:
             while True:
                 data = await reader.readline()
                 if not data:
                     break
-                message = data.decode().strip()
+                msg = Message.deserialize(data.decode())
 
-                if message == "/list":
-                    # seznam všech uživatelů
-                    user_list = ", ".join(self.clients.keys())
-                    writer.write(f"Connected users: {user_list}\n".encode())
-                    await writer.drain()
+                # broadcast
+                if msg.type == "broadcast":
+                    await self.broadcast(msg, exclude=msg.sender)
 
-                elif message.startswith("@"):
-                    # soukromá zpráva
-                    try:
-                        target, msg = message[1:].split(" ", 1)
-                        if target in self.clients:
-                            self.clients[target].write(
-                                f"[private from {name}]: {msg}\n".encode()
-                            )
-                            await self.clients[target].drain()
-                        else:
-                            writer.write(f"User {target} not found.\n".encode())
-                            await writer.drain()
-                    except ValueError:
-                        writer.write(b"Invalid private message format. Use: @username message\n")
+                # private
+                elif msg.type == "private":
+                    target = msg.target
+                    if target in self.clients:
+                        twriter = self.clients[target]["writer"]
+                        twriter.write(msg.serialize())
+                        await twriter.drain()
+                    else:
+                        # offline
+                        self.offline_messages.setdefault(target, []).append(msg)
+
+                # file offer (odesílatel posílá soubor)
+                elif msg.type == "file_offer":
+                    target = msg.target
+                    data_bytes = await reader.readexactly(msg.filesize)
+                    await reader.readline()  # ENDFILE
+                    self.pending_files[msg.filename] = {"target": target, "data": data_bytes}
+
+                    if target in self.clients:
+                        # pošleme nabídku příjemci
+                        offer = Message(type_="file_offer", sender=msg.sender, target=target,
+                                        filename=msg.filename, filesize=msg.filesize)
+                        self.clients[target]["writer"].write(offer.serialize())
+                        await self.clients[target]["writer"].drain()
+                    # pokud offline, doručíme při připojení
+
+                # file accept
+                elif msg.type == "file_data":  # klient potvrzuje přijetí
+                    fname = msg.filename
+                    if fname in self.pending_files and self.pending_files[fname]["target"] == name:
+                        data_bytes = self.pending_files[fname]["data"]
+                        sha256 = hashlib.sha256(data_bytes).hexdigest()
+                        send_msg = Message(type_="file_data", sender=msg.sender, filename=fname,
+                                           filesize=len(data_bytes), filehash=sha256)
+                        writer.write(send_msg.serialize())
+                        writer.write(data_bytes)
+                        writer.write(b"--FILEEND--\n")
                         await writer.drain()
-                else:
-                    # broadcast
-                    await self.broadcast(f"[{name}]: {message}", exclude=writer)
+                        del self.pending_files[fname]
 
-        except asyncio.CancelledError:
-            pass
         finally:
-            print(f"Client disconnected: {name}")
-            del self.clients[name]
+            if name in self.clients:
+                del self.clients[name]
+                await self.broadcast(Message(type_="broadcast", text=f"*** {name} has left the chat ***", sender="Server"))
             writer.close()
             await writer.wait_closed()
-            await self.broadcast(f"*** {name} has left the chat ***")
 
-    async def broadcast(self, message, exclude=None):
-        """Pošle zprávu všem klientům (kromě exclude)."""
-        for user, client in self.clients.items():
-            if client != exclude:
-                client.write(f"{message}\n".encode())
-                await client.drain()
+    async def broadcast(self, msg, exclude=None):
+        for user, client in list(self.clients.items()):
+            if user != exclude:
+                try:
+                    client["writer"].write(msg.serialize())
+                    await client["writer"].drain()
+                except:
+                    del self.clients[user]
 
     async def start(self):
-        """Spustí server."""
         self.server = await asyncio.start_server(
             self.handle_client, self.server_address.ip, self.server_address.port
         )
-        addr = self.server.sockets[0].getsockname()
-        print(f"Server running on {addr}")
-
         async with self.server:
             await self.server.serve_forever()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     server_address = Address("127.0.0.1", 8888)
     server = Server(server_address)
     asyncio.run(server.start())

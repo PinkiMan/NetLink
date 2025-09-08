@@ -26,12 +26,23 @@ class Address:
         return f"{self.ip}:{self.port}"
 
 class Message:
-    def __init__(self, sender, receiver, content, content_type, filename):
+    def __init__(self, type_, sender=None, target=None, text=None, filename=None, filesize=None, filehash=None):
+        self.type = type_       # "broadcast", "private", "file_offer", "file_data"
         self.sender = sender
-        self.receiver = receiver
-        self.content = content
-        self.content_type = content_type
+        self.target = target
+        self.text = text
         self.filename = filename
+        self.filesize = filesize
+        self.filehash = filehash
+
+    def serialize(self):
+        return (json.dumps(self.__dict__) + "\n").encode()
+
+    @staticmethod
+    def deserialize(data):
+        obj = json.loads(data)
+        obj['type_'] = obj.pop('type')
+        return Message(**obj)
 
 if __name__ == '__main__':
     pass
