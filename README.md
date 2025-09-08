@@ -15,6 +15,11 @@
 - [ ] Drag & drop 
 - [ ] Odhadovaná doba přenosu
 - [ ] Zobrazení rychlosti přenosu
+- [ ] Ukládání zpráv na serveru jako historie
+- [ ] Klienti online/offline
+- [ ] Reakce na zprávy
+- [ ] Notifikace
+- [ ] Skupinový chat
 
 ## Features:
 - [ ] Server
@@ -33,3 +38,10 @@
 - [ ] Notifikace na mail
 - [ ] Notifikace na discord
 - [ ] Headless mod v terminalu
+
+
+
+
+
+
+Client:

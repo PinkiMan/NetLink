@@ -29,23 +29,34 @@ class Server:
         self.pending_files = {}  # filename -> {"target": target_name, "data": bytes}
         self.offline_messages = {}  # target_name -> [Message]
 
+    @staticmethod
+    async def send_message(message: Message, writer: asyncio.StreamWriter):
+        writer.write(message.serialize())
+        await writer.drain()
+
+    @staticmethod
+    async def close(writer: asyncio.StreamWriter):
+        writer.close()
+        await writer.wait_closed()
+
+
     async def handle_client(self, reader, writer):
         name = (await reader.readline()).decode().strip()
+
         if not name or name in self.clients:
-            writer.write(b"Invalid or duplicate name. Connection closed.\n")
-            await writer.drain()
-            writer.close()
-            await writer.wait_closed()
+            message = Message(msg_type='refused_connection', text="Invalid or duplicate name. Connection closed.")
+            await self.send_message(message, writer)
+
+            await self.close(writer)
             return
 
         self.clients[name] = {"reader": reader, "writer": writer}
-        await self.broadcast(Message(type_="broadcast", text=f"*** {name} has joined the chat ***", sender="Server"), exclude=name)
+        await self.broadcast(Message(msg_type="broadcast", text=f"*** {name} has joined the chat ***", sender="Server"), exclude=name)
 
         # doručení offline zpráv
         if name in self.offline_messages:
             for msg in self.offline_messages[name]:
-                writer.write(msg.serialize())
-                await writer.drain()
+                await self.send_message(msg, writer)
             del self.offline_messages[name]
 
         try:
@@ -79,7 +90,7 @@ class Server:
 
                     if target in self.clients:
                         # pošleme nabídku příjemci
-                        offer = Message(type_="file_offer", sender=msg.sender, target=target,
+                        offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
                                         filename=msg.filename, filesize=msg.filesize)
                         self.clients[target]["writer"].write(offer.serialize())
                         await self.clients[target]["writer"].drain()
@@ -91,7 +102,7 @@ class Server:
                     if fname in self.pending_files and self.pending_files[fname]["target"] == name:
                         data_bytes = self.pending_files[fname]["data"]
                         sha256 = hashlib.sha256(data_bytes).hexdigest()
-                        send_msg = Message(type_="file_data", sender=msg.sender, filename=fname,
+                        send_msg = Message(msg_type="file_data", sender=msg.sender, filename=fname,
                                            filesize=len(data_bytes), filehash=sha256)
                         writer.write(send_msg.serialize())
                         writer.write(data_bytes)
@@ -102,11 +113,12 @@ class Server:
         finally:
             if name in self.clients:
                 del self.clients[name]
-                await self.broadcast(Message(type_="broadcast", text=f"*** {name} has left the chat ***", sender="Server"))
+                await self.broadcast(Message(msg_type="broadcast", text=f"*** {name} has left the chat ***", sender="Server"))
             writer.close()
             await writer.wait_closed()
 
     async def broadcast(self, msg, exclude=None):
+        """ broadcast a message to all clients """
         for user, client in list(self.clients.items()):
             if user != exclude:
                 try:

@@ -26,8 +26,8 @@ class Address:
         return f"{self.ip}:{self.port}"
 
 class Message:
-    def __init__(self, type_, sender=None, target=None, text=None, filename=None, filesize=None, filehash=None):
-        self.type = type_       # "broadcast", "private", "file_offer", "file_data"
+    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, filesize=None, filehash=None):
+        self.type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
         self.sender = sender
         self.target = target
         self.text = text
@@ -35,13 +35,13 @@ class Message:
         self.filesize = filesize
         self.filehash = filehash
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         return (json.dumps(self.__dict__) + "\n").encode()
 
     @staticmethod
     def deserialize(data):
         obj = json.loads(data)
-        obj['type_'] = obj.pop('type')
+        obj['msg_type'] = obj.pop('type')
         return Message(**obj)
 
 if __name__ == '__main__':

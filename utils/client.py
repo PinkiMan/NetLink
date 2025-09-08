@@ -31,20 +31,30 @@ class Client:
         self.writer = None
 
     async def connect(self):
+        """Connect to the server"""
         self.reader, self.writer = await asyncio.open_connection(
             self.server_address.ip, self.server_address.port
-        )
-        self.writer.write((self.name + "\n").encode())
-        await self.writer.drain()
+        )   # open connection to server
+
+        await self.send_message(self.name) # TODO: rework to Message class
+
         print(f"Connected as {self.name}")
+
+    async def receive_message(self) -> Message|None:
+        data = await self.reader.readline()  # read line from communication
+
+        if not data:    # message is empty
+            print("Server closed connection", file=sys.stderr)
+            return None
+
+        msg = Message.deserialize(data.decode())
+        return msg
 
     async def listen(self):
         while True:
-            data = await self.reader.readline()
-            if not data:
-                print("Server closed connection", file=sys.stderr)
+            msg = await self.receive_message()
+            if msg is None:
                 break
-            msg = Message.deserialize(data.decode())
 
             if msg.type == "broadcast":
                 print(f"[{msg.sender}]: {msg.text}")
@@ -52,28 +62,39 @@ class Client:
             elif msg.type == "private":
                 print(f"[PM from {msg.sender}]: {msg.text}")
 
+            elif msg.type == "refused_connection":
+                print(f"[SERVER]: {msg.text}")
+                break
+
             elif msg.type == "file_offer":
-                answer = input(f"Chceš přijmout soubor {msg.filename} ({msg.filesize} bytes) od {msg.sender}? [y/n]: ").strip().lower()
-                if answer == "y":
-                    confirm = Message(type_="file_data", sender=self.name, filename=msg.filename)
-                    self.writer.write(confirm.serialize())
-                    await self.writer.drain()
-                else:
-                    # odmítnutí lze případně implementovat
-                    pass
+                await self.receive_file_offer(msg)
 
             elif msg.type == "file_data":
-                size = msg.filesize
-                data_bytes = await self.reader.readexactly(size)
-                await self.reader.readline()  # --FILEEND--
-                received_hash = hashlib.sha256(data_bytes).hexdigest()
-                if received_hash != msg.filehash:
-                    print(f"⚠️ Soubor {msg.filename} je poškozen!")
-                else:
-                    save_path = f"download_{msg.filename}"
-                    with open(save_path, "wb") as f:
-                        f.write(data_bytes)
-                    print(f"📥 Soubor {msg.filename} uložen jako {save_path} (hash OK)")
+                await self.receive_file_data(msg)
+
+    async def receive_file_offer(self, msg: Message):
+        answer = input(
+            f"Chceš přijmout soubor {msg.filename} ({msg.filesize} bytes) od {msg.sender}? [y/n]: ").strip().lower()
+        if answer == "y":
+            confirm = Message(msg_type="file_data", sender=self.name, filename=msg.filename)
+            self.writer.write(confirm.serialize())
+            await self.writer.drain()
+        else:
+            # odmítnutí lze případně implementovat
+            pass
+
+    async def receive_file_data(self, msg: Message):
+        size = msg.filesize
+        data_bytes = await self.reader.readexactly(size)
+        await self.reader.readline()  # --FILEEND--
+        received_hash = hashlib.sha256(data_bytes).hexdigest()
+        if received_hash != msg.filehash:
+            print(f"⚠️ Soubor {msg.filename} je poškozen!")
+        else:
+            save_path = f"download_{msg.filename}"
+            with open(save_path, "wb") as f:
+                f.write(data_bytes)
+            print(f"📥 Soubor {msg.filename} uložen jako {save_path} (hash OK)")
 
     async def send(self):
         loop = asyncio.get_running_loop()
@@ -87,7 +108,7 @@ class Client:
                 _, target, path = msg_input.split(" ", 2)
                 if os.path.isfile(path):
                     filesize = os.path.getsize(path)
-                    file_msg = Message(type_="file_offer", sender=self.name, target=target,
+                    file_msg = Message(msg_type="file_offer", sender=self.name, target=target,
                                        filename=os.path.basename(path), filesize=filesize)
                     self.writer.write(file_msg.serialize())
                     await self.writer.drain()
@@ -103,30 +124,46 @@ class Client:
                 parts = msg_input.split(" ", 2)
                 if len(parts) == 3:
                     target, text = parts[1], parts[2]
-                    msg = Message(type_="private", sender=self.name, target=target, text=text)
+                    msg = Message(msg_type="private", sender=self.name, target=target, text=text)
                     self.writer.write(msg.serialize())
                     await self.writer.drain()
 
             else:
-                msg = Message(type_="broadcast", sender=self.name, text=msg_input)
+                msg = Message(msg_type="broadcast", sender=self.name, text=msg_input)
                 self.writer.write(msg.serialize())
                 await self.writer.drain()
 
+    async def send_message(self, message: Message|str):
+        """ send message to server """
+        if type(message) is Message:
+            msg = message.serialize()
+        else:
+            msg = (message + "\n").encode()
+
+        self.writer.write(msg)  # queue send username to server
+        await self.writer.drain()  # send queue
+
     async def run(self):
-        await self.connect()
-        listen_task = asyncio.create_task(self.listen())
-        send_task = asyncio.create_task(self.send())
+        """ main runner of client """
+        await self.connect() # connects to server
+
+        listen_task = asyncio.create_task(self.listen())    # starts thread of listening messages
+        send_task = asyncio.create_task(self.send())    # starts thread of sending messages
+
         done, pending = await asyncio.wait([listen_task, send_task],
                                            return_when=asyncio.FIRST_COMPLETED)
-        for task in pending:
+
+        for task in pending:    # cancels all pending tasks
             task.cancel()
-        self.writer.close()
-        await self.writer.wait_closed()
+
+        self.writer.close()     # ends sending
+        await self.writer.wait_closed()     # ends all
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python client.py <name>")
         sys.exit(1)
+
     name = sys.argv[1]
     server_address = Address("127.0.0.1", 8888)
     client = Client(server_address, name)
