@@ -28,6 +28,7 @@ class Server:
         self.clients = {}  # name -> {"reader": reader, "writer": writer}
         self.pending_files = {}  # filename -> {"target": target_name, "data": bytes}
         self.offline_messages = {}  # target_name -> [Message]
+        self.users = {"alice": "secret", "bob": "1234"}     # TODO: Add database of clients
 
     @staticmethod
     async def send_message(message: Message, writer: asyncio.StreamWriter):
@@ -38,6 +39,7 @@ class Server:
     async def close(writer: asyncio.StreamWriter):
         writer.close()
         await writer.wait_closed()
+
 
 
     async def handle_client(self, reader, writer):
@@ -134,7 +136,32 @@ class Server:
         async with self.server:
             await self.server.serve_forever()
 
+    async def stop(self):
+        # oznámíme klientům shutdown
+        shutdown_msg = Message(msg_type="broadcast", sender="Server", text="*** Server shutting down ***")
+        await self.broadcast(shutdown_msg)
+
+        print("Stopping server...")
+        self.server.close()
+        await self.server.wait_closed()
+
+        # zavřeme všechny klienty
+        for name, client in list(self.clients.items()):
+            writer = client["writer"]
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception as e:
+                print(f"Chyba při zavírání klienta {name}: {e}")
+        self.clients.clear()
+        print("Server stopped cleanly.")
+
 if __name__ == "__main__":
     server_address = Address("127.0.0.1", 8888)
     server = Server(server_address)
-    asyncio.run(server.start())
+
+    try:
+        asyncio.run(server.start())
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt received, shutting down...")
+        asyncio.run(server.stop())

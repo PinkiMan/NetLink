@@ -9,6 +9,8 @@
 - [ ] Timeout detekce
 - [ ] Automatický Reconnect
 - [ ] Sifrovani (AES, TLS/SSL)
+- [ ] Ochrana proti pretizeni (10 zpráv/s)
+- [ ] Logging
 
 ## GUI App features:
 - [ ] progress bar
