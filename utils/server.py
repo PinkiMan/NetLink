@@ -80,7 +80,6 @@ class Server(Networking):
                         # offline
                         self.offline_messages.setdefault(target, []).append(msg)
 
-                # file offer (odesílatel posílá soubor)
                 elif msg.msg_type == "file_offer":
                     target = msg.target
                     data_bytes = await reader.readexactly(msg.filesize)
