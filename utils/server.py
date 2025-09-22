@@ -54,6 +54,21 @@ class Server(Networking):
         else:
             self.offline_messages.setdefault(target, []).append(msg)    # offline
 
+    async def file_offer(self, msg: Message, reader: asyncio.StreamReader):     #REWORK: outdated function
+        target = msg.target
+        data_bytes = await reader.readexactly(msg.filesize)
+        await reader.readline()
+
+        self.pending_files[msg.filename] = {"target": target, "data": data_bytes}
+
+        if target in self.clients:
+            offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
+                            filename=msg.filename, filesize=msg.filesize)
+            self.clients[target]["writer"].write(offer.serialize())
+            await self.clients[target]["writer"].drain()
+        # pokud offline, doručíme při připojení
+
+
     async def handle_client(self, reader, writer):
         name = (await reader.readline()).decode().strip()
 
@@ -83,18 +98,7 @@ class Server(Networking):
                     await self.private_message(msg)
 
                 elif msg.msg_type == "file_offer":
-                    target = msg.target
-                    data_bytes = await reader.readexactly(msg.filesize)
-                    await reader.readline()  # ENDFILE
-                    self.pending_files[msg.filename] = {"target": target, "data": data_bytes}
-
-                    if target in self.clients:
-                        # pošleme nabídku příjemci
-                        offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
-                                        filename=msg.filename, filesize=msg.filesize)
-                        self.clients[target]["writer"].write(offer.serialize())
-                        await self.clients[target]["writer"].drain()
-                    # pokud offline, doručíme při připojení
+                    await self.file_offer(msg=msg, reader=reader)
 
                 # file accept
                 elif msg.msg_type == "file_data":  # klient potvrzuje přijetí
