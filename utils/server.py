@@ -40,7 +40,13 @@ class Server:
         writer.close()
         await writer.wait_closed()
 
+    async def deliver_pending_messages(self, user: User, writer: asyncio.StreamWriter):
+        """ delivers all pending/offline messages to user """
 
+        if user.username in self.offline_messages:
+            for msg in self.offline_messages[user.username]:
+                await self.send_message(msg, writer)
+            del self.offline_messages[user.username]
 
     async def handle_client(self, reader, writer):
         name = (await reader.readline()).decode().strip()
