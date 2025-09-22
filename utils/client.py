@@ -41,16 +41,6 @@ class Client(Networking):
 
         print(f"Connected as {self.name}")
 
-    """async def receive_message(self) -> Message|None:
-        data = await self.reader.readline()  # read line from communication
-
-        if not data:    # message is empty
-            print("Server closed connection", file=sys.stderr)
-            return None
-
-        msg = Message.deserialize(data.decode())
-        return msg"""
-
     async def listen(self):
         while True:
             msg = await self.receive_message(self.reader)
