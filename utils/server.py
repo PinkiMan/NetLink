@@ -22,7 +22,7 @@ import hashlib
 from classes import Address, Message
 
 
-class Server:
+class Server(Networking):
     def __init__(self, server_address: Address):
         self.server_address = server_address
         self.clients = {}  # name -> {"reader": reader, "writer": writer}
