@@ -48,6 +48,8 @@ class Server(Networking):
         name = (await reader.readline()).decode().strip()
 
         user = User(username=name)  #REWORK: rework to
+
+        # refuse client if it has no name or name already in connected clients
         if not name or name in self.clients:
             message = Message(msg_type='refused_connection', text="Invalid or duplicate name. Connection closed.")
             await self.send_message(message, writer)
