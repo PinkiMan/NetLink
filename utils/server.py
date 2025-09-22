@@ -66,8 +66,7 @@ class Server(Networking):
             while True:
                 msg = await self.receive_message(reader)
 
-                # broadcast
-                if msg.msg_type == "broadcast":
+                if msg.msg_type == "broadcast":     #broadcating messages to all clients
                     await self.broadcast(msg, exclude=msg.sender)
 
                 # private
