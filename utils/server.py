@@ -55,8 +55,7 @@ class Server:
         self.clients[name] = {"reader": reader, "writer": writer}
         await self.broadcast(Message(msg_type="broadcast", text=f"*** {name} has joined the chat ***", sender="Server"), exclude=name)
 
-        # doručení offline zpráv
-        self.deliver_pending_messages(user=user, writer=writer)     #FIXME: idk
+        await self.deliver_pending_messages(user=user, writer=writer) # deliver pending/offline messages
 
         try:
             while True:
