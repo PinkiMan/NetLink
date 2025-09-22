@@ -128,7 +128,7 @@ class Server(Networking):
 
     async def start(self):
         self.server = await asyncio.start_server(
-            self.handle_client, self.server_address.ip, self.server_address.port
+            self.handle_client, host=self.server_address.ip, port=self.server_address.port
         )
         async with self.server:
             await self.server.serve_forever()
