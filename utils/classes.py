@@ -16,9 +16,14 @@ Directory: utils/
 """
 
 import json
+import asyncio
+
+class User:
+    def __init__(self, username: str):
+        self.username = username
 
 class Address:
-    def __init__(self, ip, port):
+    def __init__(self, ip: str, port: int):
         self.ip = ip
         self.port = port
 
@@ -27,7 +32,7 @@ class Address:
 
 class Message:
     def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, filesize=None, filehash=None):
-        self.type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
+        self.msg_type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
         self.sender = sender
         self.target = target
         self.text = text
@@ -36,13 +41,35 @@ class Message:
         self.filehash = filehash
 
     def serialize(self) -> bytes:
+        #print((json.dumps(self.__dict__) + "\n").encode())
         return (json.dumps(self.__dict__) + "\n").encode()
 
     @staticmethod
     def deserialize(data):
         obj = json.loads(data)
-        obj['msg_type'] = obj.pop('type')
         return Message(**obj)
+
+class Networking:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    async def send_message(message: Message, writer: asyncio.StreamWriter) -> None:
+        """ sends message to client """
+        msg = message.serialize()
+        # TODO: add rsa hashing
+        writer.write(msg)
+        await writer.drain()
+
+    @staticmethod
+    async def receive_message(reader: asyncio.StreamReader) -> Message | bool:
+        """ receives message from client """
+        data = await reader.readline()
+        if not data:
+            return False
+        # TODO: add rsa hashing
+        msg = Message.deserialize(data.decode())
+        return msg
 
 if __name__ == '__main__':
     pass

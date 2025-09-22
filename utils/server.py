@@ -16,7 +16,6 @@ Directory: utils/
 """
 
 import asyncio
-import sys
 import hashlib
 
 from classes import Address, Message, Networking, User
@@ -48,6 +47,7 @@ class Server(Networking):
     async def handle_client(self, reader, writer):
         name = (await reader.readline()).decode().strip()
 
+        user = User(username=name)  #REWORK: rework to
         if not name or name in self.clients:
             message = Message(msg_type='refused_connection', text="Invalid or duplicate name. Connection closed.")
             await self.send_message(message, writer)
@@ -68,11 +68,11 @@ class Server(Networking):
                 msg = Message.deserialize(data.decode())
 
                 # broadcast
-                if msg.type == "broadcast":
+                if msg.msg_type == "broadcast":
                     await self.broadcast(msg, exclude=msg.sender)
 
                 # private
-                elif msg.type == "private":
+                elif msg.msg_type == "private":
                     target = msg.target
                     if target in self.clients:
                         twriter = self.clients[target]["writer"]
@@ -83,7 +83,7 @@ class Server(Networking):
                         self.offline_messages.setdefault(target, []).append(msg)
 
                 # file offer (odesílatel posílá soubor)
-                elif msg.type == "file_offer":
+                elif msg.msg_type == "file_offer":
                     target = msg.target
                     data_bytes = await reader.readexactly(msg.filesize)
                     await reader.readline()  # ENDFILE
@@ -98,7 +98,7 @@ class Server(Networking):
                     # pokud offline, doručíme při připojení
 
                 # file accept
-                elif msg.type == "file_data":  # klient potvrzuje přijetí
+                elif msg.msg_type == "file_data":  # klient potvrzuje přijetí
                     fname = msg.filename
                     if fname in self.pending_files and self.pending_files[fname]["target"] == name:
                         data_bytes = self.pending_files[fname]["data"]
@@ -156,8 +156,7 @@ class Server(Networking):
         print("Server stopped cleanly.")
 
 if __name__ == "__main__":
-    server_address = Address("127.0.0.1", 8888)
-    server = Server(server_address)
+    server = Server(Address("127.0.0.1", 8888))
 
     try:
         asyncio.run(server.start())

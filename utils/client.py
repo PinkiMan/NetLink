@@ -20,11 +20,12 @@ import sys
 import os
 import hashlib
 
-from classes import Address, Message
+from classes import Address, Message, Networking
 
 
-class Client:
+class Client(Networking):
     def __init__(self, server_address: Address, name: str):
+        super().__init__()
         self.server_address = server_address
         self.name = name
         self.reader = None
@@ -40,7 +41,7 @@ class Client:
 
         print(f"Connected as {self.name}")
 
-    async def receive_message(self) -> Message|None:
+    """async def receive_message(self) -> Message|None:
         data = await self.reader.readline()  # read line from communication
 
         if not data:    # message is empty
@@ -48,28 +49,28 @@ class Client:
             return None
 
         msg = Message.deserialize(data.decode())
-        return msg
+        return msg"""
 
     async def listen(self):
         while True:
-            msg = await self.receive_message()
+            msg = await self.receive_message(self.reader)
             if msg is None:
                 break
 
-            if msg.type == "broadcast":
+            if msg.msg_type == "broadcast":
                 print(f"[{msg.sender}]: {msg.text}")
 
-            elif msg.type == "private":
+            elif msg.msg_type == "private":
                 print(f"[PM from {msg.sender}]: {msg.text}")
 
-            elif msg.type == "refused_connection":
+            elif msg.msg_type == "refused_connection":
                 print(f"[SERVER]: {msg.text}")
                 break
 
-            elif msg.type == "file_offer":
+            elif msg.msg_type == "file_offer":
                 await self.receive_file_offer(msg)
 
-            elif msg.type == "file_data":
+            elif msg.msg_type == "file_data":
                 await self.receive_file_data(msg)
 
     async def receive_file_offer(self, msg: Message):
