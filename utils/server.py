@@ -31,10 +31,6 @@ class Server(Networking):
         self.offline_messages = {}  # target_name -> [Message]
         self.users = {"alice": "secret", "bob": "1234"}     # TODO: Add database of clients
 
-    @staticmethod
-    async def send_message(message: Message, writer: asyncio.StreamWriter):
-        writer.write(message.serialize())
-        await writer.drain()
 
     @staticmethod
     async def close(writer: asyncio.StreamWriter):
