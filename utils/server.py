@@ -68,6 +68,18 @@ class Server(Networking):
             await self.clients[target]["writer"].drain()
         # pokud offline, doručíme při připojení
 
+    async def file_data(self, msg: Message, user: User ,writer: asyncio.StreamWriter):
+        fname = msg.filename
+        if fname in self.pending_files and self.pending_files[fname]["target"] == user.username:
+            data_bytes = self.pending_files[fname]["data"]
+            sha256 = hashlib.sha256(data_bytes).hexdigest()
+            send_msg = Message(msg_type="file_data", sender=msg.sender, filename=fname,
+                               filesize=len(data_bytes), filehash=sha256)
+            writer.write(send_msg.serialize())
+            writer.write(data_bytes)
+            writer.write(b"--FILEEND--\n")
+            await writer.drain()
+            del self.pending_files[fname]
 
     async def handle_client(self, reader, writer):
         name = (await reader.readline()).decode().strip()
@@ -100,19 +112,8 @@ class Server(Networking):
                 elif msg.msg_type == "file_offer":
                     await self.file_offer(msg=msg, reader=reader)
 
-                # file accept
-                elif msg.msg_type == "file_data":  # klient potvrzuje přijetí
-                    fname = msg.filename
-                    if fname in self.pending_files and self.pending_files[fname]["target"] == name:
-                        data_bytes = self.pending_files[fname]["data"]
-                        sha256 = hashlib.sha256(data_bytes).hexdigest()
-                        send_msg = Message(msg_type="file_data", sender=msg.sender, filename=fname,
-                                           filesize=len(data_bytes), filehash=sha256)
-                        writer.write(send_msg.serialize())
-                        writer.write(data_bytes)
-                        writer.write(b"--FILEEND--\n")
-                        await writer.drain()
-                        del self.pending_files[fname]
+                elif msg.msg_type == "file_data":
+                    await self.file_data(msg=msg, user=user, writer=writer)
 
         finally:
             if name in self.clients:
