@@ -64,10 +64,7 @@ class Server(Networking):
 
         try:
             while True:
-                data = await reader.readline()
-                if not data:
-                    break
-                msg = Message.deserialize(data.decode())
+                msg = await self.receive_message(reader)
 
                 # broadcast
                 if msg.msg_type == "broadcast":
