@@ -20,7 +20,7 @@ import sys
 import os
 import hashlib
 
-from classes import Address, Message, Networking
+from classes import Address, Message, Networking, User
 
 
 class Client(Networking):
@@ -36,8 +36,8 @@ class Client(Networking):
         self.reader, self.writer = await asyncio.open_connection(
             self.server_address.ip, self.server_address.port
         )   # open connection to server
-        
-        await self.send_message(Message(msg_type='auth_request', sender=User(username=self.name)))
+
+        await self.send_message(Message(msg_type='auth_request', sender=self.name))     # REWORK: send User object not username
 
         print(f"Connected as {self.name}")
 
