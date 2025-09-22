@@ -36,8 +36,8 @@ class Client(Networking):
         self.reader, self.writer = await asyncio.open_connection(
             self.server_address.ip, self.server_address.port
         )   # open connection to server
-
-        await self.send_message(self.name) # REWORK to Message class
+        
+        await self.send_message(Message(msg_type='auth_request', sender=User(username=self.name)))
 
         print(f"Connected as {self.name}")
 
