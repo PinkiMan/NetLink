@@ -45,6 +45,15 @@ class Server(Networking):
                 await self.send_message(msg, writer)
             del self.offline_messages[user.username]
 
+    async def private_message(self, msg: Message):
+        target = msg.target
+        if target in self.clients:
+            target_writer = self.clients[target]["writer"]
+            target_writer.write(msg.serialize())
+            await target_writer.drain()
+        else:
+            self.offline_messages.setdefault(target, []).append(msg)    # offline
+
     async def handle_client(self, reader, writer):
         name = (await reader.readline()).decode().strip()
 
@@ -71,14 +80,7 @@ class Server(Networking):
                     await self.broadcast(msg, exclude=msg.sender)
 
                 elif msg.msg_type == "private":
-                    target = msg.target
-                    if target in self.clients:
-                        twriter = self.clients[target]["writer"]
-                        twriter.write(msg.serialize())
-                        await twriter.drain()
-                    else:
-                        # offline
-                        self.offline_messages.setdefault(target, []).append(msg)
+                    await self.private_message(msg)
 
                 elif msg.msg_type == "file_offer":
                     target = msg.target
