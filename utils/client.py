@@ -37,7 +37,7 @@ class Client(Networking):
             self.server_address.ip, self.server_address.port
         )   # open connection to server
 
-        await self.send_message(self.name) # TODO: rework to Message class
+        await self.send_message(self.name) # REWORK to Message class
 
         print(f"Connected as {self.name}")
 
