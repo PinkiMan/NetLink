@@ -19,7 +19,7 @@ import asyncio
 import sys
 import hashlib
 
-from classes import Address, Message
+from classes import Address, Message, Networking, User
 
 
 class Server(Networking):
