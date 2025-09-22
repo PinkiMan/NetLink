@@ -24,6 +24,7 @@ from classes import Address, Message, Networking, User
 class Server(Networking):
     def __init__(self, server_address: Address):
         super().__init__()
+        self.server = None
         self.server_address = server_address
         self.clients = {}  # name -> {"reader": reader, "writer": writer}
         self.pending_files = {}  # filename -> {"target": target_name, "data": bytes}
