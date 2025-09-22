@@ -41,7 +41,6 @@ class Message:
         self.filehash = filehash
 
     def serialize(self) -> bytes:
-        #print((json.dumps(self.__dict__) + "\n").encode())
         return (json.dumps(self.__dict__) + "\n").encode()
 
     @staticmethod
