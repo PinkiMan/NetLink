@@ -48,6 +48,9 @@ class Message:
         obj = json.loads(data.decode(encoding))
         return Message(**obj)
 
+    def __str__(self):
+        return f"{self.msg_type}:{self.sender}->{self.target}:{self.text}"
+
 class Networking:
     def __init__(self):
         self.ENCODING = 'utf-8'
