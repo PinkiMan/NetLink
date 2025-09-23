@@ -40,34 +40,38 @@ class Message:
         self.filesize = filesize
         self.filehash = filehash
 
-    def serialize(self) -> bytes:
-        return (json.dumps(self.__dict__) + "\n").encode()
+    def serialize(self, encoding) -> bytes:
+        return (json.dumps(self.__dict__) + "\n").encode(encoding)
 
     @staticmethod
-    def deserialize(data):
-        obj = json.loads(data)
+    def deserialize(data, encoding):
+        obj = json.loads(data.decode(encoding))
         return Message(**obj)
 
 class Networking:
     def __init__(self):
-        pass
+        self.ENCODING = 'utf-8'
+        self.HEADER_SIZE = 1024
+        self.DISCONNECT = '!DISCONNECT!'
+        self.MAX_RETRIES = 5
+        self.MESSAGE_PART_SPLITTER = '|||'
+        self.USERS_SPLITTER = '!!!'
 
-    @staticmethod
-    async def send_message(message: Message, writer: asyncio.StreamWriter) -> None:
+
+    async def send_message(self, message: Message, writer: asyncio.StreamWriter) -> None:
         """ sends message to client """
-        msg = message.serialize()
+        msg = message.serialize(self.ENCODING)
         # TODO: add rsa hashing
         writer.write(msg)
         await writer.drain()
 
-    @staticmethod
-    async def receive_message(reader: asyncio.StreamReader) -> Message | bool:
+    async def receive_message(self, reader: asyncio.StreamReader) -> Message | bool:
         """ receives message from client """
         data = await reader.readline()
         if not data:
             return False
         # TODO: add rsa hashing
-        msg = Message.deserialize(data.decode())
+        msg = Message.deserialize(data, self.ENCODING)
         return msg
 
 if __name__ == '__main__':
