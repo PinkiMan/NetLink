@@ -67,17 +67,17 @@ class Server(Networking):
         # if client is offline, deliver on connection   TODO: add offline deliver
 
     async def file_data(self, msg: Message, user: User ,writer: asyncio.StreamWriter):
-        fname = msg.filename
-        if fname in self.pending_files and self.pending_files[fname]["target"] == user.username:
-            data_bytes = self.pending_files[fname]["data"]
+        filename = msg.filename
+        if filename in self.pending_files and self.pending_files[filename]["target"] == user.username:
+            data_bytes = self.pending_files[filename]["data"]
             sha256 = hashlib.sha256(data_bytes).hexdigest()
-            send_msg = Message(msg_type="file_data", sender=msg.sender, filename=fname,
+            send_msg = Message(msg_type="file_data", sender=msg.sender, filename=filename,
                                filesize=len(data_bytes), filehash=sha256)
             writer.write(send_msg.serialize(self.ENCODING))
             writer.write(data_bytes)
             writer.write(b"--FILEEND--\n")
             await writer.drain()
-            del self.pending_files[fname]
+            del self.pending_files[filename]
 
     async def handle_client(self, reader, writer):
         msg = await self.receive_message(reader)
