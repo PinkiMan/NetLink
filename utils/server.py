@@ -51,7 +51,7 @@ class Server(Networking):
             target_writer.write(msg.serialize(self.ENCODING))
             await target_writer.drain()
         else:
-            self.offline_messages.setdefault(target, []).append(msg)    # offline
+            self.offline_messages.setdefault(target, []).append(msg)    # offline messages REWORK: use dictionary
 
     async def file_offer(self, msg: Message, reader: asyncio.StreamReader):     #REWORK: outdated function
         target = msg.target
