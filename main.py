@@ -94,7 +94,7 @@ def arguments_evaluation(args):
             run_client_headless()
 
 if __name__ == '__main__':
-    args = parser_setup()
-
+    arguments = parser_setup()
+    arguments_evaluation(args=arguments)
 
 
