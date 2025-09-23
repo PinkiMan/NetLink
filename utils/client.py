@@ -24,7 +24,7 @@ from utils.classes import Address, Message, Networking
 
 
 class Client(Networking):
-    def __init__(self, server_address: Address, username: str, password: str):
+    def __init__(self, server_address: Address, username: str=None, password: str=None):
         super().__init__()
         self.server_address = server_address
         self.username = username
@@ -69,7 +69,7 @@ class Client(Networking):
             f"Chceš přijmout soubor {msg.filename} ({msg.filesize} bytes) od {msg.sender}? [y/n]: ").strip().lower()
         if answer == "y":
             confirm = Message(msg_type="file_data", sender=self.username, filename=msg.filename)
-            self.writer.write(confirm.serialize())
+            self.writer.write(confirm.serialize(self.ENCODING))
             await self.writer.drain()
         else:
             # odmítnutí lze případně implementovat
@@ -102,7 +102,7 @@ class Client(Networking):
                     filesize = os.path.getsize(path)
                     file_msg = Message(msg_type="file_offer", sender=self.username, target=target,
                                        filename=os.path.basename(path), filesize=filesize)
-                    self.writer.write(file_msg.serialize())
+                    self.writer.write(file_msg.serialize(self.ENCODING))
                     await self.writer.drain()
                     with open(path, "rb") as f:
                         while chunk := f.read(4096):
@@ -117,12 +117,12 @@ class Client(Networking):
                 if len(parts) == 3:
                     target, text = parts[1], parts[2]
                     msg = Message(msg_type="private", sender=self.username, target=target, text=text)
-                    self.writer.write(msg.serialize())
+                    self.writer.write(msg.serialize(self.ENCODING))
                     await self.writer.drain()
 
             else:
                 msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
-                self.writer.write(msg.serialize())
+                self.writer.write(msg.serialize(self.ENCODING))
                 await self.writer.drain()
 
     async def run(self):
