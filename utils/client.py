@@ -24,10 +24,11 @@ from utils.classes import Address, Message, Networking
 
 
 class Client(Networking):
-    def __init__(self, server_address: Address, name: str):
+    def __init__(self, server_address: Address, username: str, password: str):
         super().__init__()
         self.server_address = server_address
-        self.name = name
+        self.username = username
+        self.password = password
         self.reader = None
         self.writer = None
 
@@ -37,9 +38,9 @@ class Client(Networking):
             self.server_address.ip, self.server_address.port
         )   # open connection to server
 
-        await self.send_message(self.name) # REWORK to Message class
+        await self.send_message(self.username) # REWORK to Message class
 
-        print(f"Connected as {self.name}")
+        print(f"Connected as {self.username}")
 
     """async def receive_message(self) -> Message|None:
         data = await self.reader.readline()  # read line from communication
@@ -77,7 +78,7 @@ class Client(Networking):
         answer = input(
             f"Chceš přijmout soubor {msg.filename} ({msg.filesize} bytes) od {msg.sender}? [y/n]: ").strip().lower()
         if answer == "y":
-            confirm = Message(msg_type="file_data", sender=self.name, filename=msg.filename)
+            confirm = Message(msg_type="file_data", sender=self.username, filename=msg.filename)
             self.writer.write(confirm.serialize())
             await self.writer.drain()
         else:
@@ -109,7 +110,7 @@ class Client(Networking):
                 _, target, path = msg_input.split(" ", 2)
                 if os.path.isfile(path):
                     filesize = os.path.getsize(path)
-                    file_msg = Message(msg_type="file_offer", sender=self.name, target=target,
+                    file_msg = Message(msg_type="file_offer", sender=self.username, target=target,
                                        filename=os.path.basename(path), filesize=filesize)
                     self.writer.write(file_msg.serialize())
                     await self.writer.drain()
@@ -125,12 +126,12 @@ class Client(Networking):
                 parts = msg_input.split(" ", 2)
                 if len(parts) == 3:
                     target, text = parts[1], parts[2]
-                    msg = Message(msg_type="private", sender=self.name, target=target, text=text)
+                    msg = Message(msg_type="private", sender=self.username, target=target, text=text)
                     self.writer.write(msg.serialize())
                     await self.writer.drain()
 
             else:
-                msg = Message(msg_type="broadcast", sender=self.name, text=msg_input)
+                msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
                 self.writer.write(msg.serialize())
                 await self.writer.drain()
 
