@@ -94,7 +94,7 @@ def arguments_evaluation(args):
             print(" -> Headless mode")
             run_client_headless(username=args.username, password=args.password)
 
-def setup_logging():
+def setup_logging():    # TODO: use logging in project
     logging.basicConfig(
         filename='data/app.log',
         filemode='w',
