@@ -125,16 +125,6 @@ class Client(Networking):
                 self.writer.write(msg.serialize())
                 await self.writer.drain()
 
-    async def send_message(self, message: Message|str):
-        """ send message to server """
-        if type(message) is Message:
-            msg = message.serialize()
-        else:
-            msg = (message + "\n").encode()
-
-        self.writer.write(msg)  # queue send username to server
-        await self.writer.drain()  # send queue
-
     async def run(self):
         """ main runner of client """
         await self.connect() # connects to server
