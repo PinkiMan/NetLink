@@ -153,7 +153,7 @@ class Server(Networking):
                 writer.close()
                 await writer.wait_closed()
             except Exception as e:
-                print(f"Chyba při zavírání klienta {name}: {e}")
+                print(f"Error in closing client {name}: {e}")
         self.clients.clear()
         print("Server stopped cleanly.")
 
