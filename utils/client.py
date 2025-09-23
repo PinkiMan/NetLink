@@ -118,9 +118,7 @@ class Client(Networking):
                 if len(parts) == 3:
                     target, text = parts[1], parts[2]
                     msg = Message(msg_type="private", sender=self.username, target=target, text=text)
-                    self.writer.write(msg.serialize(self.ENCODING))
-                    await self.writer.drain()
-
+                    await self.send_message(message=msg, writer=self.writer)
             else:
                 msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
                 print(msg.text)
