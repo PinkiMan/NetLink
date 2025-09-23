@@ -67,7 +67,7 @@ class Client(Networking):
 
     async def receive_file_offer(self, msg: Message):
         answer = input(
-            f"Chceš přijmout soubor {msg.filename} ({msg.filesize} bytes) od {msg.sender}? [y/n]: ").strip().lower()
+            f"Do you want to accept file {msg.filename} ({msg.filesize} bytes) from {msg.sender}? [y/n]: ").strip().lower()
         if answer == "y":
             confirm = Message(msg_type="file_data", sender=self.username, filename=msg.filename)
             self.writer.write(confirm.serialize(self.ENCODING))
