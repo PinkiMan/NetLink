@@ -18,8 +18,7 @@ Directory: utils/
 import asyncio
 import hashlib
 
-from classes import Address, Message, Networking, User
-
+from utils.classes import Address, Message, Networking, User
 
 class Server(Networking):
     def __init__(self, server_address: Address):
