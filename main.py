@@ -23,7 +23,7 @@ from utils.classes import Address
 from utils.client import Client
 
 
-def parser_setup():
+def parser_setup() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="NetLink is program made for sending messages and files over internet")
 
     parser.add_argument(
