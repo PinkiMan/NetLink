@@ -63,9 +63,8 @@ class Server(Networking):
         if target in self.clients:
             offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
                             filename=msg.filename, filesize=msg.filesize)
-            self.clients[target]["writer"].write(offer.serialize(self.ENCODING))
-            await self.clients[target]["writer"].drain()
-        # pokud offline, doručíme při připojení
+            await self.send_message(message=offer, writer=self.clients[target]["writer"])
+        # if client is offline, deliver on connection   TODO: add offline deliver
 
     async def file_data(self, msg: Message, user: User ,writer: asyncio.StreamWriter):
         fname = msg.filename
