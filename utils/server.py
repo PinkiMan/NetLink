@@ -126,9 +126,9 @@ class Server(Networking):
         for user, client in list(self.clients.items()):
             if user != exclude:
                 try:
-                    client["writer"].write(msg.serialize())
-                    await client["writer"].drain()
-                except:
+                    await self.send_message(message=msg, writer=client["writer"])
+                except Exception as e:
+                    print(f"Error in sending to {user}: {e}")
                     del self.clients[user]
 
     async def start(self):
