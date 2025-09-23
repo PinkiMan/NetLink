@@ -1,5 +1,5 @@
-__author__ = "Pinkas Matěj - pinka"
-__maintainer__ = "Pinkas Matěj - pinka"
+__author__ = "Pinkas Matěj - Pinki"
+__maintainer__ = "Pinkas Matěj - Pinki"
 __email__ = "pinkas.matej@gmail.com"
 __credits__ = []
 __created__ = "02/09/2025"
