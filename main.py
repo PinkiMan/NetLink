@@ -17,6 +17,7 @@ Directory: /
 
 import argparse
 import asyncio
+import logging
 
 from utils.server import Server
 from utils.classes import Address
@@ -92,6 +93,15 @@ def arguments_evaluation(args):
         else:
             print(" -> Headless mode")
             run_client_headless(username=args.username, password=args.password)
+
+def setup_logging():
+    logging.basicConfig(
+        filename='data/app.log',
+        filemode='w',
+        level=logging.DEBUG,
+        #format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        format="%(levelname)s - %(name)s - %(message)s",
+    )
 
 if __name__ == '__main__':
     arguments = parser_setup()
