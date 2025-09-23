@@ -138,7 +138,7 @@ class Server(Networking):
             await self.server.serve_forever()
 
     async def stop(self):
-        # oznámíme klientům shutdown
+        # broadcast to all clients about server shutdown
         shutdown_msg = Message(msg_type="broadcast", sender="Server", text="*** Server shutting down ***")
         await self.broadcast(shutdown_msg)
 
