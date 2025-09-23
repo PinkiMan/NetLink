@@ -111,7 +111,7 @@ class Client(Networking):
                             await self.writer.drain()
                     self.writer.write(b"ENDFILE\n")
                     await self.writer.drain()
-                    print(f"📤 Poslal soubor {path} uživateli {target}")
+                    print(f"Send file {path} to user {target}")
 
             elif msg_input.startswith("/msg "):
                 parts = msg_input.split(" ", 2)
