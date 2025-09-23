@@ -167,6 +167,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     name = sys.argv[1]
-    server_address = Address("127.0.0.1", 8888)
-    client = Client(server_address, name)
+    client = Client(Address("127.0.0.1", 8888), name)
     asyncio.run(client.run())
