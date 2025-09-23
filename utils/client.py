@@ -82,7 +82,7 @@ class Client(Networking):
         await self.reader.readline()  # --FILEEND--
         received_hash = hashlib.sha256(data_bytes).hexdigest()
         if received_hash != msg.filehash:
-            print(f"⚠️ Soubor {msg.filename} je poškozen!")
+            print(f"File {msg.filename} is damaged!")
         else:
             save_path = f"download_{msg.filename}"
             with open(save_path, "wb") as f:
