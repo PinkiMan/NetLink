@@ -87,7 +87,7 @@ class Client(Networking):
             save_path = f"download_{msg.filename}"
             with open(save_path, "wb") as f:
                 f.write(data_bytes)
-            print(f"📥 Soubor {msg.filename} uložen jako {save_path} (hash OK)")
+            print(f"File {msg.filename} is saved {save_path} (hash OK)")
 
     async def send(self):
         loop = asyncio.get_running_loop()
