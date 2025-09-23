@@ -100,11 +100,12 @@ class Client(Networking):
             if msg_input.startswith("/sendfileto "):
                 _, target, path = msg_input.split(" ", 2)
                 if os.path.isfile(path):
-                    filesize = os.path.getsize(path)
+                    file_size = os.path.getsize(path)
                     file_msg = Message(msg_type="file_offer", sender=self.username, target=target,
-                                       filename=os.path.basename(path), filesize=filesize)
-                    self.writer.write(file_msg.serialize(self.ENCODING))
-                    await self.writer.drain()
+                                       filename=os.path.basename(path), filesize=file_size)
+
+                    await self.send_message(message=file_msg, writer=self.writer)
+
                     with open(path, "rb") as f:
                         while chunk := f.read(4096):
                             self.writer.write(chunk)
