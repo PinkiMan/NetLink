@@ -48,7 +48,7 @@ class Server(Networking):
         target = msg.target
         if target in self.clients:
             target_writer = self.clients[target]["writer"]
-            target_writer.write(msg.serialize())
+            target_writer.write(msg.serialize(self.ENCODING))
             await target_writer.drain()
         else:
             self.offline_messages.setdefault(target, []).append(msg)    # offline
@@ -63,7 +63,7 @@ class Server(Networking):
         if target in self.clients:
             offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
                             filename=msg.filename, filesize=msg.filesize)
-            self.clients[target]["writer"].write(offer.serialize())
+            self.clients[target]["writer"].write(offer.serialize(self.ENCODING))
             await self.clients[target]["writer"].drain()
         # pokud offline, doručíme při připojení
 
@@ -74,7 +74,7 @@ class Server(Networking):
             sha256 = hashlib.sha256(data_bytes).hexdigest()
             send_msg = Message(msg_type="file_data", sender=msg.sender, filename=fname,
                                filesize=len(data_bytes), filehash=sha256)
-            writer.write(send_msg.serialize())
+            writer.write(send_msg.serialize(self.ENCODING))
             writer.write(data_bytes)
             writer.write(b"--FILEEND--\n")
             await writer.drain()
