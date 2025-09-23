@@ -123,8 +123,8 @@ class Client(Networking):
 
             else:
                 msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
-                self.writer.write(msg.serialize(self.ENCODING))
-                await self.writer.drain()
+                print(msg.text)
+                await self.send_message(message=msg, writer=self.writer)
 
     async def run(self):
         """ main runner of client """
