@@ -91,7 +91,7 @@ def arguments_evaluation(args):
             run_client_gui()
         else:
             print(" -> Headless mode")
-            run_client_headless()
+            run_client_headless(username=args.username, password=args.password)
 
 if __name__ == '__main__':
     arguments = parser_setup()
