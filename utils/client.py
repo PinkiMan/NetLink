@@ -20,7 +20,7 @@ import sys
 import os
 import hashlib
 
-from classes import Address, Message, Networking
+from utils.classes import Address, Message, Networking
 
 
 class Client(Networking):
