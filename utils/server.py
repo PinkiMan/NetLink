@@ -146,7 +146,7 @@ class Server(Networking):
         self.server.close()
         await self.server.wait_closed()
 
-        # zavřeme všechny klienty
+        # close all client connections
         for name, client in list(self.clients.items()):
             writer = client["writer"]
             try:
