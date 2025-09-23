@@ -62,8 +62,8 @@ class Networking:
         """ sends message  """
         msg = message.serialize(self.ENCODING)
         # TODO: add rsa hashing
-        writer.write(msg)
-        await writer.drain()
+        writer.write(msg)   # queue send to server
+        await writer.drain()    # send queue
 
     async def receive_message(self, reader: asyncio.StreamReader) -> Message | bool:
         """ receives message from client """
