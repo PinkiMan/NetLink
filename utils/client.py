@@ -73,7 +73,7 @@ class Client(Networking):
             self.writer.write(confirm.serialize(self.ENCODING))
             await self.writer.drain()
         else:
-            # odmítnutí lze případně implementovat
+            # TODO: implement decline of file
             pass
 
     async def receive_file_data(self, msg: Message):
