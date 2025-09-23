@@ -59,7 +59,7 @@ class Networking:
 
 
     async def send_message(self, message: Message, writer: asyncio.StreamWriter) -> None:
-        """ sends message to client """
+        """ sends message  """
         msg = message.serialize(self.ENCODING)
         # TODO: add rsa hashing
         writer.write(msg)
