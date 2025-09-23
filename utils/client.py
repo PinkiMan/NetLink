@@ -38,7 +38,8 @@ class Client(Networking):
             self.server_address.ip, self.server_address.port
         )   # open connection to server
 
-        await self.send_message(self.username) # REWORK to Message class
+        msg = Message(msg_type='auth_request', sender=self.username, target=None, text=self.username)
+        await self.send_message(message=msg, writer=self.writer) # REWORK to User not only username
 
         print(f"Connected as {self.username}")
 
