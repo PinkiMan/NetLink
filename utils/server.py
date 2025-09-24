@@ -82,7 +82,7 @@ class Server(Networking):
 
     async def auth_client(self, reader: asyncio.StreamReader) -> User:
         if self.AUTH_CLIENTS_ONLY:
-            return None
+            return None     # TODO: add authentication for user
         else:
             msg = await self.receive_message(reader)
             name = msg.text
