@@ -92,7 +92,7 @@ class Client(Networking):
     async def send(self):
         loop = asyncio.get_running_loop()
         while True:
-            msg_input = await loop.run_in_executor(None, sys.stdin.readline)
+            msg_input = await loop.run_in_executor(None, sys.stdin.readline)    # type: ignore[arg-type]
             if not msg_input:
                 break
             msg_input = msg_input.strip()
