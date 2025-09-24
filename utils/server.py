@@ -1,5 +1,5 @@
-__author__ = "Pinkas Matěj - pinka"
-__maintainer__ = "Pinkas Matěj - pinka"
+__author__ = "Pinkas Matěj - Pinki"
+__maintainer__ = "Pinkas Matěj - Pinki"
 __email__ = "pinkas.matej@gmail.com"
 __credits__ = []
 __created__ = "02/09/2025"
@@ -18,8 +18,7 @@ Directory: utils/
 import asyncio
 import hashlib
 
-from classes import Address, Message, Networking, User
-
+from utils.classes import Address, Message, Networking, User
 
 class Server(Networking):
     def __init__(self, server_address: Address):
@@ -49,10 +48,10 @@ class Server(Networking):
         target = msg.target
         if target in self.clients:
             target_writer = self.clients[target]["writer"]
-            target_writer.write(msg.serialize())
+            target_writer.write(msg.serialize(self.ENCODING))
             await target_writer.drain()
         else:
-            self.offline_messages.setdefault(target, []).append(msg)    # offline
+            self.offline_messages.setdefault(target, []).append(msg)    # offline messages REWORK: use dictionary
 
     async def file_offer(self, msg: Message, reader: asyncio.StreamReader):     #REWORK: outdated function
         target = msg.target
@@ -64,29 +63,26 @@ class Server(Networking):
         if target in self.clients:
             offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
                             filename=msg.filename, filesize=msg.filesize)
-            self.clients[target]["writer"].write(offer.serialize())
-            await self.clients[target]["writer"].drain()
-        # pokud offline, doručíme při připojení
+            await self.send_message(message=offer, writer=self.clients[target]["writer"])
+        # if client is offline, deliver on connection   TODO: add offline deliver
 
     async def file_data(self, msg: Message, user: User ,writer: asyncio.StreamWriter):
-        fname = msg.filename
-        if fname in self.pending_files and self.pending_files[fname]["target"] == user.username:
-            data_bytes = self.pending_files[fname]["data"]
+        filename = msg.filename
+        if filename in self.pending_files and self.pending_files[filename]["target"] == user.username:
+            data_bytes = self.pending_files[filename]["data"]
             sha256 = hashlib.sha256(data_bytes).hexdigest()
-            send_msg = Message(msg_type="file_data", sender=msg.sender, filename=fname,
+            send_msg = Message(msg_type="file_data", sender=msg.sender, filename=filename,
                                filesize=len(data_bytes), filehash=sha256)
-            writer.write(send_msg.serialize())
+            writer.write(send_msg.serialize(self.ENCODING))
             writer.write(data_bytes)
             writer.write(b"--FILEEND--\n")
             await writer.drain()
-            del self.pending_files[fname]
+            del self.pending_files[filename]
 
     async def handle_client(self, reader, writer):
         msg = await self.receive_message(reader)
-
-        username = msg.sender           #REWORK: receive User object not username
-        user = User(username=username)
-        name = username
+        name = msg.text
+        user = User(username=name)  #REWORK: rework to
 
         # refuse client if it has no name or name already in connected clients
         if not name or name in self.clients:
@@ -129,9 +125,9 @@ class Server(Networking):
         for user, client in list(self.clients.items()):
             if user != exclude:
                 try:
-                    client["writer"].write(msg.serialize())
-                    await client["writer"].drain()
-                except:
+                    await self.send_message(message=msg, writer=client["writer"])
+                except Exception as e:
+                    print(f"Error in sending to {user}: {e}")
                     del self.clients[user]
 
     async def start(self):
@@ -142,7 +138,7 @@ class Server(Networking):
             await self.server.serve_forever()
 
     async def stop(self):
-        # oznámíme klientům shutdown
+        # broadcast to all clients about server shutdown
         shutdown_msg = Message(msg_type="broadcast", sender="Server", text="*** Server shutting down ***")
         await self.broadcast(shutdown_msg)
 
@@ -150,14 +146,14 @@ class Server(Networking):
         self.server.close()
         await self.server.wait_closed()
 
-        # zavřeme všechny klienty
+        # close all client connections
         for name, client in list(self.clients.items()):
             writer = client["writer"]
             try:
                 writer.close()
                 await writer.wait_closed()
             except Exception as e:
-                print(f"Chyba při zavírání klienta {name}: {e}")
+                print(f"Error in closing client {name}: {e}")
         self.clients.clear()
         print("Server stopped cleanly.")
 

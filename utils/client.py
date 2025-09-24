@@ -1,5 +1,5 @@
-__author__ = "Pinkas Matěj - pinka"
-__maintainer__ = "Pinkas Matěj - pinka"
+__author__ = "Pinkas Matěj - Pinki"
+__maintainer__ = "Pinkas Matěj - Pinki"
 __email__ = "pinkas.matej@gmail.com"
 __credits__ = []
 __created__ = "02/09/2025"
@@ -20,14 +20,15 @@ import sys
 import os
 import hashlib
 
-from classes import Address, Message, Networking, User
+from utils.classes import Address, Message, Networking
 
 
 class Client(Networking):
-    def __init__(self, server_address: Address, name: str):
+    def __init__(self, server_address: Address, username: str=None, password: str=None):
         super().__init__()
         self.server_address = server_address
-        self.name = name
+        self.username = username
+        self.password = password
         self.reader = None
         self.writer = None
 
@@ -37,9 +38,10 @@ class Client(Networking):
             self.server_address.ip, self.server_address.port
         )   # open connection to server
 
-        await self.send_message(Message(msg_type='auth_request', sender=self.name))     # REWORK: send User object not username
+        msg = Message(msg_type='auth_request', sender=self.username, target=None, text=self.username)
+        await self.send_message(message=msg, writer=self.writer) # REWORK to User not only username
 
-        print(f"Connected as {self.name}")
+        print(f"Connected as {self.username}")
 
     async def listen(self):
         while True:
@@ -65,13 +67,13 @@ class Client(Networking):
 
     async def receive_file_offer(self, msg: Message):
         answer = input(
-            f"Chceš přijmout soubor {msg.filename} ({msg.filesize} bytes) od {msg.sender}? [y/n]: ").strip().lower()
+            f"Do you want to accept file {msg.filename} ({msg.filesize} bytes) from {msg.sender}? [y/n]: ").strip().lower()
         if answer == "y":
-            confirm = Message(msg_type="file_data", sender=self.name, filename=msg.filename)
-            self.writer.write(confirm.serialize())
+            confirm = Message(msg_type="file_data", sender=self.username, filename=msg.filename)
+            self.writer.write(confirm.serialize(self.ENCODING))
             await self.writer.drain()
         else:
-            # odmítnutí lze případně implementovat
+            # TODO: implement decline of file
             pass
 
     async def receive_file_data(self, msg: Message):
@@ -80,12 +82,12 @@ class Client(Networking):
         await self.reader.readline()  # --FILEEND--
         received_hash = hashlib.sha256(data_bytes).hexdigest()
         if received_hash != msg.filehash:
-            print(f"⚠️ Soubor {msg.filename} je poškozen!")
+            print(f"File {msg.filename} is damaged!")
         else:
             save_path = f"download_{msg.filename}"
             with open(save_path, "wb") as f:
                 f.write(data_bytes)
-            print(f"📥 Soubor {msg.filename} uložen jako {save_path} (hash OK)")
+            print(f"File {msg.filename} is saved {save_path} (hash OK)")
 
     async def send(self):
         loop = asyncio.get_running_loop()
@@ -98,41 +100,30 @@ class Client(Networking):
             if msg_input.startswith("/sendfileto "):
                 _, target, path = msg_input.split(" ", 2)
                 if os.path.isfile(path):
-                    filesize = os.path.getsize(path)
-                    file_msg = Message(msg_type="file_offer", sender=self.name, target=target,
-                                       filename=os.path.basename(path), filesize=filesize)
-                    self.writer.write(file_msg.serialize())
-                    await self.writer.drain()
+                    file_size = os.path.getsize(path)
+                    file_msg = Message(msg_type="file_offer", sender=self.username, target=target,
+                                       filename=os.path.basename(path), filesize=file_size)
+
+                    await self.send_message(message=file_msg, writer=self.writer)
+
                     with open(path, "rb") as f:
                         while chunk := f.read(4096):
                             self.writer.write(chunk)
                             await self.writer.drain()
                     self.writer.write(b"ENDFILE\n")
                     await self.writer.drain()
-                    print(f"📤 Poslal soubor {path} uživateli {target}")
+                    print(f"Send file {path} to user {target}")
 
             elif msg_input.startswith("/msg "):
                 parts = msg_input.split(" ", 2)
                 if len(parts) == 3:
                     target, text = parts[1], parts[2]
-                    msg = Message(msg_type="private", sender=self.name, target=target, text=text)
-                    self.writer.write(msg.serialize())
-                    await self.writer.drain()
-
+                    msg = Message(msg_type="private", sender=self.username, target=target, text=text)
+                    await self.send_message(message=msg, writer=self.writer)
             else:
-                msg = Message(msg_type="broadcast", sender=self.name, text=msg_input)
-                self.writer.write(msg.serialize())
-                await self.writer.drain()
-
-    async def send_message(self, message: Message|str):
-        """ send message to server """
-        if type(message) is Message:
-            msg = message.serialize()
-        else:
-            msg = (message + "\n").encode()
-
-        self.writer.write(msg)  # queue send username to server
-        await self.writer.drain()  # send queue
+                msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
+                print(msg.text)
+                await self.send_message(message=msg, writer=self.writer)
 
     async def run(self):
         """ main runner of client """
@@ -156,6 +147,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     name = sys.argv[1]
-    server_address = Address("127.0.0.1", 8888)
-    client = Client(server_address, name)
+    client = Client(Address("127.0.0.1", 8888), name)
     asyncio.run(client.run())

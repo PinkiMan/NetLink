@@ -1,5 +1,5 @@
-__author__ = "Pinkas Matěj - pinka"
-__maintainer__ = "Pinkas Matěj - pinka"
+__author__ = "Pinkas Matěj - Pinki"
+__maintainer__ = "Pinkas Matěj - Pinki"
 __email__ = "pinkas.matej@gmail.com"
 __credits__ = []
 __created__ = "02/09/2025"
@@ -44,30 +44,37 @@ class Message:
         return (json.dumps(self.__dict__) + "\n").encode()
 
     @staticmethod
-    def deserialize(data):
-        obj = json.loads(data)
+    def deserialize(data, encoding):
+        obj = json.loads(data.decode(encoding))
         return Message(**obj)
+
+    def __str__(self):
+        return f"{self.msg_type}:{self.sender}->{self.target}:{self.text}"
 
 class Networking:
     def __init__(self):
-        pass
+        self.ENCODING = 'utf-8'
+        self.HEADER_SIZE = 1024
+        self.DISCONNECT = '!DISCONNECT!'
+        self.MAX_RETRIES = 5
+        self.MESSAGE_PART_SPLITTER = '|||'
+        self.USERS_SPLITTER = '!!!'
 
-    @staticmethod
-    async def send_message(message: Message, writer: asyncio.StreamWriter) -> None:
-        """ sends message to client """
-        msg = message.serialize()
+
+    async def send_message(self, message: Message, writer: asyncio.StreamWriter) -> None:
+        """ sends message  """
+        msg = message.serialize(self.ENCODING)
         # TODO: add rsa hashing
-        writer.write(msg)
-        await writer.drain()
+        writer.write(msg)   # queue send to server
+        await writer.drain()    # send queue
 
-    @staticmethod
-    async def receive_message(reader: asyncio.StreamReader) -> Message | bool:
+    async def receive_message(self, reader: asyncio.StreamReader) -> Message | bool:
         """ receives message from client """
         data = await reader.readline()
         if not data:
             return False
         # TODO: add rsa hashing
-        msg = Message.deserialize(data.decode())
+        msg = Message.deserialize(data, self.ENCODING)
         return msg
 
 if __name__ == '__main__':

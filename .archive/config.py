@@ -22,6 +22,17 @@ MAX_RETRIES = 5
 MESSAGE_PART_SPLITTER = '|||'
 USERS_SPLITTER = '!!!'
 
+import logging
+
+
+def setup_logging():
+    logging.basicConfig(
+        filename='data/app.log',
+        filemode='w',
+        level=logging.DEBUG,
+        #format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        format="%(levelname)s - %(name)s - %(message)s",
+    )
 
 if __name__ == '__main__':
     pass
