@@ -122,7 +122,6 @@ class Client(Networking):
                     await self.send_message(message=msg, writer=self.writer)
             else:
                 msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
-                print(msg.text)
                 await self.send_message(message=msg, writer=self.writer)
 
     async def run(self):
