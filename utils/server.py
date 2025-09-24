@@ -80,6 +80,15 @@ class Server(Networking):
             await writer.drain()
             del self.pending_files[filename]
 
+    async def auth_client(self, reader: asyncio.StreamReader) -> User:
+        if self.AUTH_CLIENTS_ONLY:
+            return None
+        else:
+            msg = await self.receive_message(reader)
+            name = msg.text
+            user = User(username=name)  # REWORK: rework to
+            return user
+
     async def handle_client(self, reader, writer):
         user = await self.auth_client(reader=reader)
         name = user.username
