@@ -102,7 +102,7 @@ class Client(Networking):
                 if os.path.isfile(path):
                     file_size = os.path.getsize(path)
                     file_msg = Message(msg_type="file_offer", sender=self.username, target=target,
-                                       filename=os.path.basename(path), filesize=file_size)
+                                       filename=os.path.basename(path), file_size=file_size)
 
                     await self.send_message(message=file_msg, writer=self.writer)
 

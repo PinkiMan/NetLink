@@ -62,7 +62,7 @@ class Server(Networking):
 
         if target in self.clients:
             offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
-                            filename=msg.filename, filesize=msg.filesize)
+                            filename=msg.filename, file_size=msg.filesize)
             await self.send_message(message=offer, writer=self.clients[target]["writer"])
         # if client is offline, deliver on connection   TODO: add offline deliver
 
@@ -72,7 +72,7 @@ class Server(Networking):
             data_bytes = self.pending_files[filename]["data"]
             sha256 = hashlib.sha256(data_bytes).hexdigest()
             send_msg = Message(msg_type="file_data", sender=msg.sender, filename=filename,
-                               filesize=len(data_bytes), filehash=sha256)
+                               file_size=len(data_bytes), filehash=sha256)
             writer.write(send_msg.serialize(self.ENCODING))
             writer.write(data_bytes)
             writer.write(b"--FILEEND--\n")

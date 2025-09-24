@@ -39,13 +39,13 @@ class Address:
         return f"{self.ip}:{self.port}"
 
 class Message:
-    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, filesize=None, filehash=None):
+    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None):
         self.msg_type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
         self.sender = sender
         self.target = target
         self.text = text
         self.filename = filename
-        self.filesize = filesize
+        self.filesize = file_size
         self.filehash = filehash
 
     def serialize(self, encoding) -> bytes:
