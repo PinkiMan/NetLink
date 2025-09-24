@@ -48,8 +48,8 @@ class Message:
         self.filesize = filesize
         self.filehash = filehash
 
-    def serialize(self) -> bytes:
-        return (json.dumps(self.__dict__) + "\n").encode()
+    def serialize(self, encoding) -> bytes:
+        return (json.dumps(self.__dict__) + "\n").encode(encoding)
 
     @staticmethod
     def deserialize(data, encoding):
