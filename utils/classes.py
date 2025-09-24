@@ -22,6 +22,14 @@ class User:
     def __init__(self, username: str=None):
         self.username = username
 
+    def serialize(self) -> str:
+        return json.dumps(self.__dict__)
+
+    @staticmethod
+    def deserialize(data:str):
+        obj = json.loads(data)
+        return User(**obj)
+
 class Address:
     def __init__(self, ip: str, port: int):
         self.ip = ip
