@@ -56,14 +56,14 @@ class Server(Networking):
 
     async def file_offer(self, msg: Message, reader: asyncio.StreamReader):     #REWORK: outdated function
         target = msg.target
-        data_bytes = await reader.readexactly(msg.filesize)
+        data_bytes = await reader.readexactly(msg.file_size)
         await reader.readline()
 
         self.pending_files[msg.filename] = {"target": target, "data": data_bytes}
 
         if target in self.clients:
             offer = Message(msg_type="file_offer", sender=msg.sender, target=target,
-                            filename=msg.filename, file_size=msg.filesize)
+                            filename=msg.filename, file_size=msg.file_size)
             await self.send_message(message=offer, writer=self.clients[target]["writer"])
         # if client is offline, deliver on connection   TODO: add offline deliver
 

@@ -45,7 +45,7 @@ class Message:
         self.target = target
         self.text = text
         self.filename = filename
-        self.filesize = file_size
+        self.file_size = file_size
         self.filehash = filehash
 
     def serialize(self, encoding) -> bytes:

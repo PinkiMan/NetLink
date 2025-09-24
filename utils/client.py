@@ -67,7 +67,7 @@ class Client(Networking):
 
     async def receive_file_offer(self, msg: Message):
         answer = input(
-            f"Do you want to accept file {msg.filename} ({msg.filesize} bytes) from {msg.sender}? [y/n]: ").strip().lower()
+            f"Do you want to accept file {msg.filename} ({msg.file_size} bytes) from {msg.sender}? [y/n]: ").strip().lower()
         if answer == "y":
             confirm = Message(msg_type="file_data", sender=self.username, filename=msg.filename)
             self.writer.write(confirm.serialize(self.ENCODING))
@@ -77,7 +77,7 @@ class Client(Networking):
             pass
 
     async def receive_file_data(self, msg: Message):
-        size = msg.filesize
+        size = msg.file_size
         data_bytes = await self.reader.readexactly(size)
         await self.reader.readline()  # --FILEEND--
         received_hash = hashlib.sha256(data_bytes).hexdigest()
