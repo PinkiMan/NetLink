@@ -81,9 +81,8 @@ class Server(Networking):
             del self.pending_files[filename]
 
     async def handle_client(self, reader, writer):
-        msg = await self.receive_message(reader)
-        name = msg.text
-        user = User(username=name)  #REWORK: rework to
+        user = await self.auth_client(reader=reader)
+        name = user.username
 
         # refuse client if it has no name or name already in connected clients
         if not name or name in self.clients:
