@@ -52,7 +52,9 @@ class Colors:
         light_grey = '\033[47m'
 
 class Visuals:
-    def __init__(self):
+    def __init__(self, client):
+        self.client = client
+
         self.__window_height = 20  # height of console window
         self.__window_width = 80  # width of console window
 
