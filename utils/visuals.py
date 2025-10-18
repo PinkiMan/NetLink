@@ -51,5 +51,84 @@ class Colors:
         cyan = '\033[46m'
         light_grey = '\033[47m'
 
+class Visuals:
+    def __init__(self):
+        self.__window_height = 20  # height of console window
+        self.__window_width = 80  # width of console window
+
+        self.primary_fg_color = Colors.reset  # primary color of console window
+        self.secondary_fg_color = Colors.bold  # secondary color of console window
+        self.tertiary_fg_color = Colors.Fg.light_cyan  # tertiary color of console window
+
+        self.do_autoresize = True   #
+        self.fps = 10               #
+
+        self.actual_string = ''
+        self.last_string = ''
+
+    def print_line(self, text, text_color, border_color):
+        line_string = (f"{border_color}┃"
+                       f"{text_color}{text.ljust(self.__window_width - 2, ' ')}"
+                       f"{border_color}┃{Colors.reset}\n")
+        self.actual_string += line_string
+
+    def print_box_start(self, text, border_color):
+        line_string = f"{border_color}┏╸{text}╺{'━'*(self.__window_width - 3 - len(text) - 1)}┓{Colors.reset}\n"
+        self.actual_string += line_string
+
+    def print_box_end(self, border_color):
+        line_string = f"{border_color}┗{'━' * (self.__window_width - 2)}┛{Colors.reset}\n"
+        self.actual_string += line_string
+
+    def set_cmd_size(self):
+        plt = platform.system()
+
+        if plt == 'Darwin':
+            os.system(f"printf \'\e[8;{self.__window_height};{self.__window_width}t\'")
+        elif plt == 'Windows':
+            os.system(f"mode con: cols={self.__window_width} lines={self.__window_height}")
+
+    def auto_resize(self):
+        size = os.get_terminal_size()
+        if size[0] != self.__window_width or size[1] != self.__window_height:
+            self.set_cmd_size()
+
+    def update(self):
+        self.actual_string = '\n'
+        if self.do_autoresize:
+            self.auto_resize()
+
+        self.print_box_start('Stats', self.tertiary_fg_color)
+
+        self.print_line('ID:' + ' ' + 'Title:' + ' ' * 30 + 'Artist:' + ' ' * 20 + 'Duration:',
+                        self.secondary_fg_color,
+                        self.tertiary_fg_color)
+
+        self.print_box_end(self.tertiary_fg_color)
+
+        self.print_box_start('Playing', self.primary_fg_color)
+
+        self.print_box_end(self.primary_fg_color)
+
+        if self.last_string != self.actual_string:
+            print(self.actual_string, end='')
+            self.last_string = self.actual_string
+
+    def main(self):
+        while True:
+            self.update()
+
+    def print_logo(self):
+        for _ in range(2):
+            print()
+
+        offset = 20
+        with open('data/logo', 'r') as file:
+            for line in file.readlines():
+                print(' ' * offset + line, end='')
+
+        for _ in range(1):
+            print()
+
 if __name__ == '__main__':
     pass
