@@ -15,6 +15,10 @@ Filename: visuals.py
 Directory: utils/
 """
 
+import sys
+import platform
+import os
+
 class Colors:
     reset = '\033[0m'
     bold = '\033[01m'
@@ -87,6 +91,7 @@ class Visuals:
 
         if plt == 'Darwin':
             os.system(f"printf \'\e[8;{self.__window_height};{self.__window_width}t\'")
+            pass
         elif plt == 'Windows':
             os.system(f"mode con: cols={self.__window_width} lines={self.__window_height}")
 
@@ -97,12 +102,12 @@ class Visuals:
 
     def update(self):
         self.actual_string = '\n'
-        if self.do_autoresize:
-            self.auto_resize()
+        """if self.do_autoresize:
+            self.auto_resize()"""
 
         self.print_box_start('Stats', self.tertiary_fg_color)
 
-        self.print_line('ID:' + ' ' + 'Title:' + ' ' * 30 + 'Artist:' + ' ' * 20 + 'Duration:',
+        self.print_line(f"Connected as: {self.client.username.ljust(self.__window_width - 13 - 7 -14 -2-1 , ' ')} Server ping: {str(-1).rjust(4)} ms",
                         self.secondary_fg_color,
                         self.tertiary_fg_color)
 
@@ -113,7 +118,9 @@ class Visuals:
         self.print_box_end(self.primary_fg_color)
 
         if self.last_string != self.actual_string:
-            print(self.actual_string, end='')
+            sys.stdout.write(self.actual_string)
+            #print(self.actual_string, end='')
+            sys.stdout.flush()
             self.last_string = self.actual_string
 
     def main(self):

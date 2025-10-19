@@ -104,7 +104,14 @@ def setup_logging():    # TODO: use logging in project
     )
 
 if __name__ == '__main__':
-    arguments = parser_setup()
-    arguments_evaluation(args=arguments)
+    """arguments = parser_setup()
+    arguments_evaluation(args=arguments)"""
+    from utils.visuals import Visuals
+
+    client = Client(Address("127.0.0.1", 8888), username='pinkas', password='')
+
+    vis = Visuals(client)
+    #vis.print_logo()
+    vis.main()
 
 
