@@ -18,11 +18,15 @@ Directory: /
 import argparse
 import asyncio
 import logging
+import threading
 
 from utils.server import Server
 from utils.classes import Address
 from utils.client import Client
+from utils.visuals import Visuals
 
+SERVER_IP = '127.0.0.1'
+SERVER_PORT = 8888
 
 def parser_setup() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="NetLink is program made for sending messages and files over internet")
@@ -42,18 +46,27 @@ def parser_setup() -> argparse.Namespace:
     return parser.parse_args()
 
 def run_server_headless():
-    server = Server(Address("127.0.0.1", 8888))
+    server = Server(Address(SERVER_IP, SERVER_PORT))
     asyncio.run(server.start())
 
 def run_server_ascii():
     pass
 
 def run_client_headless(username=None, password=None):
-    client = Client(Address("127.0.0.1", 8888), username, password)
+    client = Client(Address(SERVER_IP, SERVER_PORT), username, password)
     asyncio.run(client.run())
 
-def run_client_ascii():
-    pass
+def run_client_ascii(username=None, password=None):
+    client = Client(Address(SERVER_IP, SERVER_PORT), username=username, password=password)
+
+    def runner():
+        asyncio.run(client.run())
+
+    thread = threading.Thread(target=runner, daemon=True).start()
+
+    vis = Visuals(client)
+    #vis.print_logo()
+    vis.main()
 
 def run_client_gui():
     pass
@@ -86,7 +99,7 @@ def arguments_evaluation(args):
 
         elif args.ascii:
             print(" -> ASCII visuals")
-            run_client_ascii()
+            run_client_ascii(username=args.username, password=args.password)
         elif args.gui:
             print(" -> GUI visuals")
             run_client_gui()
@@ -104,14 +117,7 @@ def setup_logging():    # TODO: use logging in project
     )
 
 if __name__ == '__main__':
-    """arguments = parser_setup()
-    arguments_evaluation(args=arguments)"""
-    from utils.visuals import Visuals
-
-    client = Client(Address("127.0.0.1", 8888), username='pinkas', password='')
-
-    vis = Visuals(client)
-    #vis.print_logo()
-    vis.main()
+    arguments = parser_setup()
+    arguments_evaluation(args=arguments)
 
 
