@@ -19,7 +19,7 @@ import json
 import asyncio
 
 class User:
-    def __init__(self, username: str=None):
+    def __init__(self, username:str=None, password:str=None):
         self.username = username
 
     def serialize(self) -> str:
