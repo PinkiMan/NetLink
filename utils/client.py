@@ -31,6 +31,7 @@ class Client(Networking):
         self.password = password
         self.reader = None
         self.writer = None
+        self.user = User(username=self.username, password=self.password)
 
     async def connect(self):
         """Connect to the server"""
