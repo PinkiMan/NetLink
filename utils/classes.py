@@ -21,6 +21,7 @@ import asyncio
 class User:
     def __init__(self, username:str=None, password:str=None):
         self.username = username
+        self.password = password
 
     def serialize(self) -> str:
         return json.dumps(self.__dict__)
