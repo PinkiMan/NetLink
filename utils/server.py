@@ -31,6 +31,7 @@ class Server(Networking):
         self.users = {"alice": "secret", "bob": "1234"}     # TODO: Add database of clients
         self.AUTH_CLIENTS_ONLY = False  # No anonym connections, clients needs to send username and password (if True)
         self.SERVER_AUTH_NEWCOMER = False   # When client want to create profile server must auth client (if True)
+        self.END_TO_END_ENCRYPTION = False  #
 
     @staticmethod
     async def close(writer: asyncio.StreamWriter):
