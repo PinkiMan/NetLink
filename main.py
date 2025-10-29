@@ -25,7 +25,7 @@ from utils.classes import Address
 from utils.client import Client
 from utils.visuals import Visuals
 
-SERVER_IP = '127.0.0.1'
+SERVER_IP = '10.144.130.28'
 SERVER_PORT = 8888
 
 def parser_setup() -> argparse.Namespace:
@@ -54,6 +54,9 @@ def run_server_ascii():
 
 def run_client_headless(username=None, password=None):
     client = Client(Address(SERVER_IP, SERVER_PORT), username, password)
+
+
+
     asyncio.run(client.run())
 
 def run_client_ascii(username=None, password=None):

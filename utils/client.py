@@ -32,6 +32,7 @@ class Client(Networking):
         self.reader = None
         self.writer = None
         self.user = User(username=self.username, password=self.password)
+        self.messages = []
 
     async def connect(self):
         """Connect to the server"""
@@ -49,6 +50,8 @@ class Client(Networking):
             msg = await self.receive_message(self.reader)
             if msg is None:
                 break
+
+            self.messages.append(msg)
 
             if msg.msg_type == "broadcast":
                 print(f"[{msg.sender}]: {msg.text}")
@@ -121,9 +124,11 @@ class Client(Networking):
                     target, text = parts[1], parts[2]
                     msg = Message(msg_type="private", sender=self.username, target=target, text=text)
                     await self.send_message(message=msg, writer=self.writer)
+                    self.messages.append(msg)
             else:
                 msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
                 await self.send_message(message=msg, writer=self.writer)
+                self.messages.append(msg)
 
     async def run(self):
         """ main runner of client """

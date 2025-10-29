@@ -105,6 +105,19 @@ class Visuals:
         self.__window_width = size[0]
         self.__window_height = size[1]
 
+    def print_messages(self):
+        maxlen = 18
+        if len(self.client.messages)<maxlen:
+            for msg in self.client.messages:
+                self.print_line(f"{msg.sender}:{msg.text}", self.primary_fg_color, self.secondary_fg_color)
+
+            for _ in range(maxlen - len(self.client.messages)):
+                self.print_line('', self.primary_fg_color, self.secondary_fg_color)
+
+        elif len(self.client.messages) >= maxlen:
+            for msg in self.client.messages[len(self.client.messages)-maxlen:]:
+                self.print_line(f"{msg.sender}:{msg.text}", self.primary_fg_color, self.secondary_fg_color)
+
     def update(self):
         self.actual_string = '\n'
         if self.do_autoresize:
@@ -121,6 +134,8 @@ class Visuals:
         self.print_box_end(self.tertiary_fg_color)
 
         self.print_box_start(f"Chat:", self.primary_fg_color)
+
+        self.print_messages()
 
         self.print_box_end(self.primary_fg_color)
 
