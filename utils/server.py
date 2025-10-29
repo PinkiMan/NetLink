@@ -103,13 +103,14 @@ class Server(Networking):
 
         self.clients[name] = {"reader": reader, "writer": writer}
         await self.broadcast(Message(msg_type="broadcast", text=f"*** {name} has joined the chat ***", sender="Server"), exclude=name)
+        print(f"*** {name} has joined the chat ***")
 
         await self.deliver_pending_messages(user=user, writer=writer) # deliver pending/offline messages
 
         try:
             while True:
                 msg = await self.receive_message(reader)
-
+                print(msg.sender, msg.text)
                 if msg.msg_type == "broadcast":     #broadcating messages to all clients
                     await self.broadcast(msg, exclude=msg.sender)
 
@@ -143,6 +144,12 @@ class Server(Networking):
         self.server = await asyncio.start_server(
             self.handle_client, host=self.server_address.ip, port=self.server_address.port
         )
+
+        if self.server.sockets[0].getsockname() != (self.server_address.ip, self.server_address.port):
+            raise ConnectionError(f"Could not establish connection on address {self.server_address.ip}:{self.server_address.port} instead of {self.server.sockets[0].getsockname()[0]}:{self.server.sockets[0].getsockname()[1]}")
+
+        print(f"Server started on address {self.server_address.ip}:{self.server_address.port}")
+
         async with self.server:
             await self.server.serve_forever()
 
