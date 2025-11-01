@@ -46,7 +46,7 @@ class Server(Networking):
                 await self.send_message(msg, writer)
             del self.offline_messages[user.username]
 
-    async def private_message(self, msg: Message):
+    async def direct_message(self, msg: Message):
         target = msg.target
         if target in self.clients:
             target_writer = self.clients[target]["writer"]
@@ -116,7 +116,7 @@ class Server(Networking):
                     await self.broadcast(msg, exclude=msg.sender)
 
                 elif msg.msg_type == "private":
-                    await self.private_message(msg)
+                    await self.direct_message(msg)
 
                 elif msg.msg_type == "file_offer":
                     await self.file_offer(msg=msg, reader=reader)
