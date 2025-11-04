@@ -19,12 +19,13 @@ import asyncio
 import sys
 import os
 import hashlib
+import time
 
 from utils.classes import Address, Message, Networking, User
 
 
 class Client(Networking):
-    def __init__(self, server_address: Address, username: str=None, password: str=None):
+    def __init__(self, server_address: Address, username: str=None, password: str=None, headless: bool = True):
         super().__init__()
         self.server_address = server_address
         self.username = username
@@ -33,6 +34,13 @@ class Client(Networking):
         self.writer = None
         self.user = User(username=self.username, password=self.password)
         self.messages = []
+        self.HEADLESS = headless
+        self.start_time = 0
+        self.server_ping = -1
+
+        self.target = None
+
+        self.non_chat_messages = []     # broadcast and /msg messages
 
     async def connect(self):
         """Connect to the server"""
@@ -43,7 +51,11 @@ class Client(Networking):
         msg = Message(msg_type='auth_request', sender=self.username, target=None, text=self.username)
         await self.send_message(message=msg, writer=self.writer) # REWORK to User not only username
 
-        print(f"Connected as {self.username}")
+        if self.HEADLESS:
+            print(f"Connected as {self.username}")
+
+    async def receive_message_handle(self):
+        pass
 
     async def listen(self):
         while True:
@@ -51,16 +63,21 @@ class Client(Networking):
             if msg is None:
                 break
 
-            self.messages.append(msg)
+            if msg.msg_type in ['broadcast', 'private']:
+                self.messages.append(msg)
 
             if msg.msg_type == "broadcast":
-                print(f"[{msg.sender}]: {msg.text}")
+
+                if self.HEADLESS:
+                    print(f"[{msg.sender}]: {msg.text}")
 
             elif msg.msg_type == "private":
-                print(f"[PM from {msg.sender}]: {msg.text}")
+                if self.HEADLESS:
+                    print(f"[PM from {msg.sender}]: {msg.text}")
 
             elif msg.msg_type == "refused_connection":
-                print(f"[SERVER]: {msg.text}")
+                if self.HEADLESS:
+                    print(f"[SERVER]: {msg.text}")
                 break
 
             elif msg.msg_type == "file_offer":
@@ -68,6 +85,10 @@ class Client(Networking):
 
             elif msg.msg_type == "file_data":
                 await self.receive_file_data(msg)
+
+            elif msg.msg_type == "pong":
+                self.server_ping = int((time.process_time() - self.start_time) * 1000)
+
 
     async def receive_file_offer(self, msg: Message):
         answer = input(
@@ -86,12 +107,19 @@ class Client(Networking):
         await self.reader.readline()  # --FILEEND--
         received_hash = hashlib.sha256(data_bytes).hexdigest()
         if received_hash != msg.filehash:
-            print(f"File {msg.filename} is damaged!")
+            if self.HEADLESS:
+                print(f"File {msg.filename} is damaged!")
         else:
             save_path = f"download_{msg.filename}"
             with open(save_path, "wb") as f:
                 f.write(data_bytes)
-            print(f"File {msg.filename} is saved {save_path} (hash OK)")
+            if self.HEADLESS:
+                print(f"File {msg.filename} is saved {save_path} (hash OK)")
+
+    async def ping(self):
+        self.start_time = time.process_time()
+        msg = Message(msg_type="ping", sender=self.username)
+        await self.send_message(message=msg, writer=self.writer)
 
     async def send(self):
         loop = asyncio.get_running_loop()
@@ -100,6 +128,8 @@ class Client(Networking):
             if not msg_input:
                 break
             msg_input = msg_input.strip()
+
+            await self.ping()
 
             if msg_input.startswith("/sendfileto "):
                 _, target, path = msg_input.split(" ", 2)
@@ -116,7 +146,8 @@ class Client(Networking):
                             await self.writer.drain()
                     self.writer.write(b"ENDFILE\n")
                     await self.writer.drain()
-                    print(f"Send file {path} to user {target}")
+                    if self.HEADLESS:
+                        print(f"Send file {path} to user {target}")
 
             elif msg_input.startswith("/msg "):
                 parts = msg_input.split(" ", 2)
@@ -125,10 +156,22 @@ class Client(Networking):
                     msg = Message(msg_type="private", sender=self.username, target=target, text=text)
                     await self.send_message(message=msg, writer=self.writer)
                     self.messages.append(msg)
-            else:
-                msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
+            elif msg_input == 'exit':
+                exit(0)
+            elif msg_input == "ping":
+                await self.ping()
+            elif msg_input.startswith("/grp"):
+                parts = msg_input.split(" ")
+                self.target = parts[1]
+                self.server_ping = parts[2]
+            elif msg_input.startswith("/all"):
+                parts = msg_input.split(" ", 2)
+                msg = Message(msg_type="broadcast", sender=self.username, text=parts[1])
                 await self.send_message(message=msg, writer=self.writer)
                 self.messages.append(msg)
+            else:
+                msg = Message(msg_type="group", sender=self.username, text=msg_input)
+                await self.send_message(message=msg, writer=self.writer)
 
     async def run(self):
         """ main runner of client """

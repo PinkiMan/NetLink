@@ -15,7 +15,6 @@ Filename: visuals.py
 Directory: utils/
 """
 
-import sys
 import platform
 import os
 
@@ -66,7 +65,6 @@ class Visuals:
         self.secondary_fg_color = Colors.bold  # secondary color of console window
         self.tertiary_fg_color = Colors.Fg.light_cyan  # tertiary color of console window
 
-        self.do_autoresize = True   #
         self.fps = 10               #
 
         self.actual_string = ''
@@ -86,7 +84,7 @@ class Visuals:
         line_string = f"{border_color}┗{'━' * (self.__window_width - 2)}┛{Colors.reset}\n"
         self.actual_string += line_string
 
-    def set_cmd_size(self):
+    def set_cmd_size(self): # not working
         plt = platform.system()
 
         if plt == 'Darwin':
@@ -95,7 +93,7 @@ class Visuals:
         elif plt == 'Windows':
             os.system(f"mode con: cols={self.__window_width} lines={self.__window_height}")
 
-    def auto_resize(self):
+    def auto_resize(self):  # not used
         size = os.get_terminal_size()
         if size[0] != self.__window_width or size[1] != self.__window_height:
             self.set_cmd_size()
@@ -105,8 +103,11 @@ class Visuals:
         self.__window_width = size[0]
         self.__window_height = size[1]
 
+    def print_chats(self):
+        pass
+
     def print_messages(self):
-        maxlen = 18
+        maxlen = self.__window_height-6
         if len(self.client.messages)<maxlen:
             for msg in self.client.messages:
                 self.print_line(f"{msg.sender}:{msg.text}", self.primary_fg_color, self.secondary_fg_color)
@@ -120,14 +121,12 @@ class Visuals:
 
     def update(self):
         self.actual_string = '\n'
-        if self.do_autoresize:
-            self.auto_resize()
 
-        #self.get_windows_size()
+        self.get_windows_size()
 
         self.print_box_start('Stats', self.tertiary_fg_color)
 
-        self.print_line(f"Connected as: {self.client.username.ljust(self.__window_width - 13 - 7 -14 -2-1 , ' ')} Server ping: {str(-1).rjust(4)} ms",
+        self.print_line(f"Connected as: {self.client.username.ljust(self.__window_width - 13 - 7 -14 -2-1 , ' ')} Server ping: {str(self.client.server_ping).rjust(4)} ms",
                         self.secondary_fg_color,
                         self.tertiary_fg_color)
 
@@ -158,6 +157,95 @@ class Visuals:
 
         for _ in range(1):
             print()
+
+class VisualsServer:
+    def __init__(self, server):
+        self.server = server
+
+        self.__window_height = 20  # height of console window
+        self.__window_width = 80  # width of console window
+
+        self.primary_fg_color = Colors.reset  # primary color of console window
+        self.secondary_fg_color = Colors.bold  # secondary color of console window
+        self.tertiary_fg_color = Colors.Fg.light_cyan  # tertiary color of console window
+
+        self.do_autoresize = True   #
+        self.fps = 10               #
+
+        self.actual_string = ''
+        self.last_string = ''
+
+    def print_line(self, text, text_color, border_color):
+        line_string = (f"{border_color}┃"
+                       f"{text_color}{text.ljust(self.__window_width - 2, ' ')}"
+                       f"{border_color}┃{Colors.reset}\n")
+        self.actual_string += line_string
+
+    def print_box_start(self, text, border_color):
+        line_string = f"{border_color}┏╸{text}╺{'━'*(self.__window_width - 3 - len(text) - 1)}┓{Colors.reset}\n"
+        self.actual_string += line_string
+
+    def print_box_end(self, border_color):
+        line_string = f"{border_color}┗{'━' * (self.__window_width - 2)}┛{Colors.reset}\n"
+        self.actual_string += line_string
+
+    def get_windows_size(self):
+        size = os.get_terminal_size()
+        self.__window_width = size[0]
+        self.__window_height = size[1]
+
+    def print_clients(self):
+        maxlen = 18
+        if len(self.server.users)<maxlen:
+            for client in self.server.users:
+                self.print_line(f"{client.username}", self.primary_fg_color, self.secondary_fg_color)
+
+            for _ in range(maxlen - len(self.server.users)):
+                self.print_line('', self.primary_fg_color, self.secondary_fg_color)
+
+        elif len(self.server.users) >= maxlen:
+            for client in self.server.users[len(self.server.users)-maxlen:]:
+                self.print_line(f"{client.username}", self.primary_fg_color, self.secondary_fg_color)
+
+    def update(self):
+        self.actual_string = '\n'
+
+        self.get_windows_size()
+
+        self.print_box_start('Stats', self.tertiary_fg_color)
+
+        self.print_line(f"Running on: {self.server.server_address.ip.ljust(self.__window_width - 13 - 7 -14 -2-1 , ' ')} Server ping: {str(-1).rjust(4)} ms",
+                        self.secondary_fg_color,
+                        self.tertiary_fg_color)
+
+        self.print_box_end(self.tertiary_fg_color)
+
+        self.print_box_start(f"Clients:", self.primary_fg_color)
+
+        self.print_clients()
+
+        self.print_box_end(self.primary_fg_color)
+
+        if self.last_string != self.actual_string:
+            print(self.actual_string, end='')
+            self.last_string = self.actual_string
+
+    def main(self):
+        while True:
+            self.update()
+
+    def print_logo(self):
+        for _ in range(2):
+            print()
+
+        offset = 20
+        with open('data/logo', 'r') as file:
+            for line in file.readlines():
+                print(' ' * offset + line, end='')
+
+        for _ in range(1):
+            print()
+
 
 if __name__ == '__main__':
     pass

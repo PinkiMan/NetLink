@@ -23,7 +23,7 @@ import threading
 from utils.server import Server
 from utils.classes import Address
 from utils.client import Client
-from utils.visuals import Visuals
+from utils.visuals import Visuals,VisualsServer
 
 SERVER_IP = '10.144.130.28'
 SERVER_PORT = 8888
@@ -46,21 +46,27 @@ def parser_setup() -> argparse.Namespace:
     return parser.parse_args()
 
 def run_server_headless():
-    server = Server(Address(SERVER_IP, SERVER_PORT))
+    server = Server(Address(SERVER_IP, SERVER_PORT), headless=True)
     asyncio.run(server.start())
 
 def run_server_ascii():
-    pass
+    server = Server(Address(SERVER_IP, SERVER_PORT), headless=False)
+
+    def runner():
+        asyncio.run(server.start())
+
+    thread = threading.Thread(target=runner, daemon=True).start()
+
+    vis = VisualsServer(server)
+    # vis.print_logo()
+    vis.main()
 
 def run_client_headless(username=None, password=None):
-    client = Client(Address(SERVER_IP, SERVER_PORT), username, password)
-
-
-
+    client = Client(Address(SERVER_IP, SERVER_PORT), username, password, headless=True)
     asyncio.run(client.run())
 
 def run_client_ascii(username=None, password=None):
-    client = Client(Address(SERVER_IP, SERVER_PORT), username=username, password=password)
+    client = Client(Address(SERVER_IP, SERVER_PORT), username=username, password=password, headless=False)
 
     def runner():
         asyncio.run(client.run())
@@ -91,7 +97,7 @@ def arguments_evaluation(args):
         print("Running NetLink Client...")
         if args.username or args.password:
             if not (args.username and args.password):
-                raise ValueError("username and password must by used both")
+                raise ValueError("username and password must be used both")
             else:
                 print(f" -> Connecting as {args.username}")
         else:
