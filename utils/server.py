@@ -18,7 +18,7 @@ Directory: utils/
 import asyncio
 import hashlib
 
-from utils.classes import Address, Message, Networking, User, ChatRooms, ChatRoom
+from utils.classes import Address, Message, Networking, User, ChatRooms, ChatRoom, Users
 
 """ shortcuts:
  - /msg = message sends directly to user to incoming messages
@@ -36,7 +36,7 @@ class Server(Networking):
         self.clients = {}  # name -> {"reader": reader, "writer": writer}
         self.pending_files = {}  # filename -> {"target": target_name, "data": bytes}
         self.offline_messages = {}  # target_name -> [Message]
-        self.users = User()     # TODO: Add database of clients
+        self.users = Users()     # TODO: Add database of clients
         self.AUTH_CLIENTS_ONLY = False  # No anonym connections, clients needs to send username and password (if True)
         self.SERVER_AUTH_NEWCOMER = False   # When client want to create profile server must auth client (if True)
         self.END_TO_END_ENCRYPTION = False  #
@@ -146,6 +146,16 @@ class Server(Networking):
 
                 if self.HEADLESS:
                     print(msg.sender, msg.text)
+
+                match msg.msg_type:
+                    case "broadcast":
+                        await self.broadcast(msg, exclude=msg.sender)
+                    case "private":
+                        await self.direct_message(msg)
+
+
+
+
 
                 if msg.msg_type == "broadcast":     #broadcating messages to all clients
                     await self.broadcast(msg, exclude=msg.sender)

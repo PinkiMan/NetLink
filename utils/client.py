@@ -32,7 +32,6 @@ class Client(Networking):
         self.password = password
         self.reader = None
         self.writer = None
-        self.user = User(username=self.username, password=self.password)
         self.messages = []
         self.HEADLESS = headless
         self.start_time = 0

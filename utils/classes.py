@@ -39,8 +39,14 @@ class Users:
     def __iter__(self):
         return iter(self.users)
 
-    def connect(self, user: User) -> None:
+    def append(self, user: User) -> None:
         self.users.append(user)
+
+    def pop(self, index):
+        self.users.pop(index)
+
+    def index(self, item):
+        return self.users.index(item)
 
 class Address:
     def __init__(self, ip: str, port: int):
