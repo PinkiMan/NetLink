@@ -42,14 +42,18 @@ class Client(Networking):
                 print("Connection established.")
             elif msg.msg_type == "refused":
                 print("Connection rejected.")
-            await self.close()
+                await self.close()
 
     async def listen(self):
         while not self.is_connection_closed:
             msg = await self.receive_message()
+            if msg is None:
+                continue
 
-            if msg.msg_type == "broadcast":
-                print(msg)
+            """if msg.msg_type == "broadcast":
+                print(msg)"""
+
+            print(msg)
 
     async def send(self):
         loop = asyncio.get_running_loop()

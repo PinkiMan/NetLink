@@ -47,15 +47,15 @@ class Server(Networking):
 
         # refuse client if it has no name or name already in connected clients
         if not name or name in self.clients:
-            message = Message(msg_type='refused_connection', text="Invalid or duplicate name. Connection closed.")
+            message = Message(msg_type='auth_response', text="Invalid or duplicate name. Connection closed.")
             await self.send_message(message, writer)
 
             await self.close(writer)
             return
         else:
-            message = Message(msg_type='accepted_connection', text="Connection established.")
+            message = Message(msg_type='auth_response', text="Connection established.")
             await self.send_message(message, writer)
-            print("Con")
+            print("Connection accepted")
 
         self.clients[name] = {"reader": reader, "writer": writer}
         await self.broadcast(Message(msg_type="broadcast", text=f"*** {name} has joined the chat ***", sender=SERVER_NAME), exclude=name)
