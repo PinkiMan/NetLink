@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from __future__ import annotations
+
 __author__ = "Pinkas Matěj"
 __maintainer__ = "Pinkas Matěj"
 __email__ = "pinkas.matej@gmail.com"
@@ -12,15 +16,15 @@ __credits__ = []
 """
 Project: NetLink
 Filename: networking.py
-Directory: shared/
+Directory: src/shared/
 """
 
 import asyncio
 
-from shared.classes import Message, Address
+from src.shared.classes import Message, Address
 
 class Networking:
-    def __init__(self):
+    def __init__(self, server_address):
         self.ENCODING = 'utf-8'
         self.HEADER_SIZE = 1024
         self.DISCONNECT = '!DISCONNECT!'
@@ -28,20 +32,28 @@ class Networking:
         self.MESSAGE_PART_SPLITTER = '|||'
         self.USERS_SPLITTER = '!!!'
 
-        self.reader:asyncio.StreamReader = None
-        self.writer:asyncio.StreamWriter = None
-        self.server_address:Address = None
+        self.reader:asyncio.StreamReader|None = None
+        self.writer:asyncio.StreamWriter|None = None
+        self.server_address:Address = server_address
 
-    async def send_message(self, message: Message, writer: asyncio.StreamWriter) -> None:
+    async def send_message(self, message: Message, writer:asyncio.StreamWriter|None=None) -> None:
         """ sends message  """
+
+        if writer is None:
+            writer = self.writer
+
         msg = message.serialize(self.ENCODING)
         # TODO: add rsa hashing
         writer.write(msg)   # queue send to server
         await writer.drain()    # send queue
 
-    async def receive_message(self) -> Message:
+    async def receive_message(self, reader:asyncio.StreamReader|None=None) -> Message:
         """ receives message from client """
-        data = await self.reader.readline()
+
+        if reader is None:
+            reader = self.reader
+
+        data = await reader.readline()
         if not data:
             return Message.empty_message()
         # TODO: add rsa hashing
@@ -54,9 +66,12 @@ class Networking:
             self.server_address.ip, self.server_address.port
         )  # open connection to server
 
-    async def close(self):
-        self.writer.close()
-        await self.writer.wait_closed()
+    async def close(self, writer:asyncio.StreamWriter|None=None):
+        if writer is None:
+            writer = self.writer
+
+        writer.close()
+        await writer.wait_closed()
 
 
 

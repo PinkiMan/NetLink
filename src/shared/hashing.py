@@ -12,7 +12,7 @@ __credits__ = []
 """
 Project: NetLink
 Filename: hashing.py
-Directory: shared/
+Directory: src/shared/
 """
 
 if __name__ == '__main__':

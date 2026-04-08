@@ -12,7 +12,7 @@ __credits__ = []
 """
 Project: NetLink
 Filename: classes.py
-Directory: shared/
+Directory: src/shared/
 """
 
 import json
@@ -65,6 +65,12 @@ class Message:
         self.filename = filename
         self.file_size = file_size
         self.filehash = filehash
+
+        """self.timestamp = None
+        self.msg_id = None
+        self.chunk_index = None
+        self.is_last_chunk = None
+        self.file_data = None"""
 
     def serialize(self, encoding) -> bytes:
         return (json.dumps(self.__dict__) + "\n").encode(encoding)

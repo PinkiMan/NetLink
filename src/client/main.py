@@ -12,31 +12,43 @@ __credits__ = []
 """
 Project: NetLink
 Filename: main.py
-Directory: client/
+Directory: src/client/
 """
 
 import asyncio
+import sys
 
-from shared.networking import Networking
-from shared.classes import Message
+from src.shared.networking import Networking
+from src.shared.classes import Message, Address
 
 class Client(Networking):
-    def __init__(self):
+    def __init__(self, address: Address, username):
         self.is_connection_closed = False
-        self.username = "xd"
+        self.username = username
         self.messages = []
 
-        super().__init__()
+        super().__init__(address)
 
     async def connect_to_server(self):
         await self.connect()
 
         # Auth request
+        msg = Message(msg_type="username", sender=self.username)
+        await self.send_message(msg)
+        msg = await self.receive_message()
+
+        if msg.msg_type == "accepted_connection":
+            print("Connection established.")
+        elif msg.msg_type == "refused_connection":
+            print("Connection rejected.")
+            await self.close()
 
     async def listen(self):
         while not self.is_connection_closed:
             msg = await self.receive_message()
-            print(msg)
+
+            if msg.msg_type == "broadcast":
+                print(msg)
 
     async def send(self):
         loop = asyncio.get_running_loop()
@@ -51,10 +63,13 @@ class Client(Networking):
                 if len(parts) == 3:
                     target, text = parts[1], parts[2]
                     msg = Message(msg_type="private", sender=self.username, target=target, text=text)
-                    await self.send_message(message=msg, writer=self.writer)
+                    await self.send_message(message=msg)
                     self.messages.append(msg)
             elif msg_input == 'exit':
-                exit(0)
+                break
+            else:
+                msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
+                await self.send_message(message=msg)
 
 
     async def run(self):
@@ -75,5 +90,6 @@ class Client(Networking):
 
 
 if __name__ == '__main__':
-    clt = Client()
+    addr = Address("127.0.0.1", 8888)
+    clt = Client(addr)
     clt.run()
