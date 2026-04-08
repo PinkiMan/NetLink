@@ -57,10 +57,10 @@ class Address:
         return f"{self.ip}:{self.port}"
 
 class Message:
-    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None, content=None):
+    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None, content=None, msg_id=None, timestamp=None, file_data=None, is_last_chunk=None, chunk_index=None):
         self.msg_type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
-        self.msg_id = None
-        self.timestamp = None
+        self.msg_id = msg_id
+        self.timestamp = timestamp
 
         self.sender = sender
         self.target = target
@@ -70,10 +70,10 @@ class Message:
 
         self.filename = filename
         self.file_size = file_size
-        self.file_data = None
-        self.is_last_chunk = None
+        self.file_data = file_data
+        self.is_last_chunk = is_last_chunk
         self.filehash = filehash
-        self.chunk_index = None
+        self.chunk_index = chunk_index
 
 
     def serialize(self, encoding) -> bytes:
