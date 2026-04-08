@@ -37,10 +37,11 @@ class Client(Networking):
         await self.send_message(msg)
         msg = await self.receive_message()
 
-        if msg.msg_type == "accepted_connection":
-            print("Connection established.")
-        elif msg.msg_type == "refused_connection":
-            print("Connection rejected.")
+        if msg.msg_type == "auth_response":
+            if msg.text == "accepted":
+                print("Connection established.")
+            elif msg.msg_type == "refused":
+                print("Connection rejected.")
             await self.close()
 
     async def listen(self):

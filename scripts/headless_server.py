@@ -21,7 +21,7 @@ from src.server.main import Server
 from src.shared.classes import Address
 
 if __name__ == '__main__':
-    server = Server(Address("127.0.0.1", 8888))
+    server = Server(Address("10.144.130.28", 8888))
 
     try:
         asyncio.run(server.start())

@@ -19,11 +19,11 @@ import asyncio
 import sys
 
 from src.shared.classes import Address
-from src.client.app_tui import DiscordCloneTUI
+from src.client.app_tui_2 import DiscordCloneTUI
 
 if __name__ == '__main__':
     username = sys.argv[1]
-    server_address = Address("127.0.0.1", 8888)
+    server_address = Address("10.144.130.28", 8888)
     #asyncio.run(clt.run())
 
     app = DiscordCloneTUI(address=server_address, username=username)

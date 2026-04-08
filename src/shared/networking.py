@@ -47,7 +47,7 @@ class Networking:
         writer.write(msg)   # queue send to server
         await writer.drain()    # send queue
 
-    async def receive_message(self, reader:asyncio.StreamReader|None=None) -> Message:
+    async def receive_message(self, reader:asyncio.StreamReader|None=None) -> Message|None:
         """ receives message from client """
 
         if reader is None:
@@ -55,7 +55,7 @@ class Networking:
 
         data = await reader.readline()
         if not data:
-            return Message.empty_message()
+            return None
         # TODO: add rsa hashing
         msg = Message.deserialize(data, self.ENCODING)
         return msg

@@ -57,20 +57,24 @@ class Address:
         return f"{self.ip}:{self.port}"
 
 class Message:
-    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None, chat=None):
+    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None, content=None):
         self.msg_type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
+        self.msg_id = None
+        self.timestamp = None
+
         self.sender = sender
         self.target = target
+
+        self.content = content  # text/file_data
         self.text = text
+
         self.filename = filename
         self.file_size = file_size
-        self.filehash = filehash
-
-        """self.timestamp = None
-        self.msg_id = None
-        self.chunk_index = None
+        self.file_data = None
         self.is_last_chunk = None
-        self.file_data = None"""
+        self.filehash = filehash
+        self.chunk_index = None
+
 
     def serialize(self, encoding) -> bytes:
         return (json.dumps(self.__dict__) + "\n").encode(encoding)
