@@ -24,7 +24,7 @@ from src.shared.classes import Address
 
 if __name__ == '__main__':
     username = sys.argv[1]
-    #addr = Address("10.144.130.28", 8888)
-    addr = Address("10.0.1.126", 8888)
+    addr = Address("10.144.130.28", 8888)
+    #addr = Address("10.0.1.126", 8888)
     clt = Client(addr, username)
     asyncio.run(clt.run())
