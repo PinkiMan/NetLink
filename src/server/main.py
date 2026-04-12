@@ -65,7 +65,7 @@ class Server(Networking):
         try:
             while True:
                 msg = await self.receive_message(reader)
-                if msg.is_none():
+                if msg is None:
                     break
 
                 if msg.msg_type == "broadcast":     #broadcating messages to all clients
@@ -80,6 +80,9 @@ class Server(Networking):
 
                 elif msg.msg_type == "group":
                     pass
+
+                elif msg.msg_type == "disconnect":
+                    break
 
 
         finally:

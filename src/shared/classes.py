@@ -57,7 +57,7 @@ class Address:
         return f"{self.ip}:{self.port}"
 
 class Message:
-    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None, content=None, msg_id=None, timestamp=None, file_data=None, is_last_chunk=None, chunk_index=None):
+    def __init__(self, msg_type, sender=None, target=None, text=None, filename=None, file_size=None, filehash=None, content=None, content_type=None, msg_id=None, timestamp=None, file_data=None, is_last_chunk=None, chunk_index=None):
         self.msg_type = msg_type       # "broadcast", "private", "file_offer", "file_data", "reaction", "refused_connection", "auth_response", "auth_request"
         self.msg_id = msg_id
         self.timestamp = timestamp
@@ -66,6 +66,7 @@ class Message:
         self.target = target
 
         self.content = content  # text/file_data
+        self.content_type = content_type    #text/file
         self.text = text
 
         self.filename = filename

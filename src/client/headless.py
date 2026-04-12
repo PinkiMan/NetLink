@@ -1,8 +1,8 @@
 __author__ = "Pinkas Matěj"
 __maintainer__ = "Pinkas Matěj"
 __email__ = "pinkas.matej@gmail.com"
-__created__ = "01/04/2026"
-__date__ = "01/04/2026"
+__created__ = "10/04/2026"
+__date__ = "10/04/2026"
 __status__ = "Prototype"
 __version__ = "0.1.0"
 __copyright__ = ""
@@ -11,12 +11,12 @@ __credits__ = []
 
 """
 Project: NetLink
-Filename: main.py
+Filename: headless.py
 Directory: src/client/
 """
 
-import asyncio
 import sys
+import asyncio
 
 from src.shared.networking import Networking
 from src.shared.classes import Message, Address
@@ -33,7 +33,7 @@ class Client(Networking):
         await self.connect()
 
         # Auth request
-        msg = Message(msg_type="username", sender=self.username)
+        msg = Message(msg_type="aut_request", sender=self.username)
         await self.send_message(msg)
         msg = await self.receive_message()
 
@@ -55,16 +55,18 @@ class Client(Networking):
 
             print(msg)
 
-    async def send_dm(self, target_user, message):
-        msg = Message(msg_type="direct_message", sender=self.username)
-
     async def send(self):
         loop = asyncio.get_running_loop()
         while True:
             msg_input = await loop.run_in_executor(None, sys.stdin.readline)    # type: ignore[arg-type]
             if not msg_input:
                 break
+
             msg_input = msg_input.strip()
+
+            #/dm <target user> <message>
+            #/grp <target group> <message>
+            #exit
 
             if msg_input.startswith("/msg "):
                 parts = msg_input.split(" ", 2)
@@ -73,8 +75,19 @@ class Client(Networking):
                     msg = Message(msg_type="private", sender=self.username, target=target, text=text)
                     await self.send_message(message=msg)
                     self.messages.append(msg)
+
+            elif msg_input.startswith("/dm"):
+                command, target, data = msg_input.split(" ", 2)
+                msg = Message(msg_type="direct_message", sender=self.username, target=target, content=data, content_type="text")
+                await self.send_message(message=msg)
+                self.messages.append(msg)
+
             elif msg_input == 'exit':
+                msg = Message(msg_type="disconnect", sender=self.username)
+                await self.send_message(message=msg)
+                self.messages.append(msg)
                 break
+
             else:
                 msg = Message(msg_type="broadcast", sender=self.username, text=msg_input)
                 await self.send_message(message=msg)
@@ -96,8 +109,5 @@ class Client(Networking):
         self.writer.close()  # ends sending
         await self.writer.wait_closed()  # ends all
 
-
 if __name__ == '__main__':
-    addr = Address("127.0.0.1", 8888)
-    clt = Client(addr)
-    clt.run()
+    pass
